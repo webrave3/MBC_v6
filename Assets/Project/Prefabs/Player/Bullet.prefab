@@ -97,7 +97,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Bullet
   speed: 80
   damage: 15
-  knockbackForce: 100
+  knockbackForce: 1
 --- !u!1 &8321090075695799411
 GameObject:
   m_ObjectHideFlags: 0

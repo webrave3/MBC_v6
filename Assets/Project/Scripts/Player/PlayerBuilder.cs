@@ -5,6 +5,9 @@ namespace AutoForge.Player
 {
     public class PlayerBuilder : MonoBehaviour
     {
+        [Header("Required References")]
+        [SerializeField] private Camera mainCamera;
+
         [Header("Building Settings")]
         [SerializeField] private GameObject buildingPrefab;
         [SerializeField] private Material previewMaterial;
@@ -12,36 +15,22 @@ namespace AutoForge.Player
         [Header("Placement Settings")]
         [SerializeField] private LayerMask groundLayer;
         [SerializeField] private float maxBuildDistance = 100f;
+        [Tooltip("The vertical offset to apply when placing, to prevent sinking. For a standard cube, 0.5 is a good start.")]
+        [SerializeField] private float placementYOffset = 0.5f; // <-- THE NEW VARIABLE
 
         private GameObject buildPreview;
         private bool isBuildMode = false;
-        private Camera mainCamera;
 
-        // Public property so other scripts (like PlayerShoot) can check our state
         public bool IsInBuildMode => isBuildMode;
 
-        private void Start()
-        {
-            mainCamera = Camera.main;
-        }
-
-        // Called by the "Build" Input Action (B key) from Send Messages
         public void OnBuild(InputValue value)
         {
-            if (value.isPressed)
-            {
-                ToggleBuildMode();
-            }
+            if (value.isPressed) ToggleBuildMode();
         }
 
-        // Called by the "Attack" Input Action (Left Mouse) from Send Messages
         public void OnAttack(InputValue value)
         {
-            // We only care about this input if we are in build mode
-            if (isBuildMode && value.isPressed)
-            {
-                PlaceBuilding();
-            }
+            if (isBuildMode && value.isPressed) PlaceBuilding();
         }
 
         private void ToggleBuildMode()
@@ -51,11 +40,12 @@ namespace AutoForge.Player
             if (isBuildMode && buildingPrefab != null)
             {
                 buildPreview = Instantiate(buildingPrefab);
+                SetLayerRecursively(buildPreview, 2); // Set to Ignore Raycast layer
+
                 if (buildPreview.TryGetComponent<Renderer>(out var renderer) && previewMaterial != null)
                 {
                     renderer.material = previewMaterial;
                 }
-                // Disable the preview's Building script so it doesn't give a bonus
                 if (buildPreview.TryGetComponent<Core.Building>(out var buildingScript))
                 {
                     buildingScript.enabled = false;
@@ -69,22 +59,21 @@ namespace AutoForge.Player
 
         private void Update()
         {
-            // Every frame, if we're in build mode, update the preview's position.
-            if (isBuildMode && buildPreview != null)
-            {
-                MoveAndAlignPreview();
-            }
+            if (isBuildMode && buildPreview != null) MoveAndAlignPreview();
         }
 
         private void MoveAndAlignPreview()
         {
+            if (mainCamera == null) return;
+
             Ray ray = mainCamera.ScreenPointToRay(Mouse.current.position.ReadValue());
             if (Physics.Raycast(ray, out RaycastHit hit, maxBuildDistance, groundLayer))
             {
-                // Move the preview to the point of impact
-                buildPreview.transform.position = hit.point;
+                // --- THIS IS THE FIX ---
+                // We add our vertical offset to the hit point on the ground
+                Vector3 position = hit.point + new Vector3(0, placementYOffset, 0);
 
-                // Rotate the preview to lie flat on the surface we hit
+                buildPreview.transform.position = position;
                 buildPreview.transform.rotation = Quaternion.FromToRotation(Vector3.up, hit.normal);
             }
         }
@@ -93,10 +82,18 @@ namespace AutoForge.Player
         {
             if (buildPreview != null)
             {
-                // Create the real building at the preview's final position and rotation
+                // We use the preview's already-corrected position
                 Instantiate(buildingPrefab, buildPreview.transform.position, buildPreview.transform.rotation);
-                // Exit build mode
                 ToggleBuildMode();
+            }
+        }
+
+        private void SetLayerRecursively(GameObject obj, int layer)
+        {
+            obj.layer = layer;
+            foreach (Transform child in obj.transform)
+            {
+                SetLayerRecursively(child.gameObject, layer);
             }
         }
     }
