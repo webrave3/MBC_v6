@@ -1,6 +1,7 @@
 using UnityEngine;
-using TMPro; // Required for TextMeshPro
+using TMPro;
 using AutoForge.Player;
+using AutoForge.Core; // <-- ADD THIS
 
 namespace AutoForge.UI
 {
@@ -8,6 +9,7 @@ namespace AutoForge.UI
     {
         [Header("Stats UI")]
         [SerializeField] private TextMeshProUGUI damageText;
+        [SerializeField] private TextMeshProUGUI scrapText; // <-- ADD THIS
 
         [Header("Debug Panel")]
         [SerializeField] private GameObject debugPanel;
@@ -15,30 +17,39 @@ namespace AutoForge.UI
         [SerializeField] private TextMeshProUGUI enemyCountText;
         [SerializeField] private TextMeshProUGUI buildingCountText;
 
+        [Header("Resource Tracking")]
+        [SerializeField] private ResourceType scrapResourceType;
+
         private Transform playerTransform;
 
         private void Start()
         {
-            // Find player for debug panel
             if (PlayerStats.Instance != null)
             {
                 playerTransform = PlayerStats.Instance.transform;
             }
+            // --- NEW CODE ---
+            // Initial UI update
+            UpdateResourcesUI();
+            // --- END NEW CODE ---
         }
 
-        // Subscribe to the event when this object is enabled
         private void OnEnable()
         {
             PlayerStats.OnStatsChanged += UpdateStatsUI;
+            // --- NEW CODE ---
+            ResourceManager.OnResourcesChanged += UpdateResourcesUI;
+            // --- END NEW CODE ---
         }
 
-        // Unsubscribe when disabled
         private void OnDisable()
         {
             PlayerStats.OnStatsChanged -= UpdateStatsUI;
+            // --- NEW CODE ---
+            ResourceManager.OnResourcesChanged -= UpdateResourcesUI;
+            // --- END NEW CODE ---
         }
 
-        // This function is called by the event whenever stats change
         private void UpdateStatsUI(PlayerStats stats)
         {
             if (stats != null)
@@ -47,15 +58,22 @@ namespace AutoForge.UI
             }
         }
 
+        // --- NEW CODE ---
+        private void UpdateResourcesUI()
+        {
+            if (ResourceManager.Instance != null && scrapText != null && scrapResourceType != null)
+            {
+                int scrapAmount = ResourceManager.Instance.GetResourceAmount(scrapResourceType);
+                scrapText.text = $"SCRAP: {scrapAmount}";
+            }
+        }
+
+
         private void Update()
         {
-            // Constantly update the debug panel
             if (debugPanel.activeInHierarchy && playerTransform != null)
             {
                 playerPositionText.text = $"POS: {playerTransform.position.ToString("F1")}";
-                // These would need more logic to track, for now they are placeholders
-                // enemyCountText.text = $"ENEMIES: {FindObjectsOfType<Enemy>().Length}"; 
-                // buildingCountText.text = $"BUILDINGS: {FindObjectsOfType<Building>().Length}";
             }
         }
     }

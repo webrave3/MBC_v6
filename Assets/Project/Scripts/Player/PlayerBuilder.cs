@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
+using AutoForge.Core; // We need this namespace
 
 namespace AutoForge.Player
 {
@@ -8,15 +9,17 @@ namespace AutoForge.Player
         [Header("Required References")]
         [SerializeField] private Camera mainCamera;
 
+        // --- REFACTORED BUILDING LOGIC ---
         [Header("Building Settings")]
-        [SerializeField] private GameObject buildingPrefab;
+        [Tooltip("The building data for the object we want to place.")]
+        [SerializeField] private BuildingData buildingToPlace; // This replaces the prefab and cost fields
         [SerializeField] private Material previewMaterial;
+        // --- END REFACTORED LOGIC ---
 
         [Header("Placement Settings")]
         [SerializeField] private LayerMask groundLayer;
         [SerializeField] private float maxBuildDistance = 100f;
-        [Tooltip("The vertical offset to apply when placing, to prevent sinking. For a standard cube, 0.5 is a good start.")]
-        [SerializeField] private float placementYOffset = 0.5f; // <-- THE NEW VARIABLE
+        [SerializeField] private float placementYOffset = 0.5f;
 
         private GameObject buildPreview;
         private bool isBuildMode = false;
@@ -37,10 +40,12 @@ namespace AutoForge.Player
         {
             isBuildMode = !isBuildMode;
 
-            if (isBuildMode && buildingPrefab != null)
+            // We must have a building selected to enter build mode
+            if (isBuildMode && buildingToPlace != null)
             {
-                buildPreview = Instantiate(buildingPrefab);
-                SetLayerRecursively(buildPreview, 2); // Set to Ignore Raycast layer
+                // Instantiate the preview from the data's prefab
+                buildPreview = Instantiate(buildingToPlace.buildingPrefab);
+                SetLayerRecursively(buildPreview, 2); // Ignore Raycast
 
                 if (buildPreview.TryGetComponent<Renderer>(out var renderer) && previewMaterial != null)
                 {
@@ -48,7 +53,7 @@ namespace AutoForge.Player
                 }
                 if (buildPreview.TryGetComponent<Core.Building>(out var buildingScript))
                 {
-                    buildingScript.enabled = false;
+                    buildingScript.enabled = false; // Disable logic on the preview
                 }
             }
             else if (buildPreview != null)
@@ -69,10 +74,7 @@ namespace AutoForge.Player
             Ray ray = mainCamera.ScreenPointToRay(Mouse.current.position.ReadValue());
             if (Physics.Raycast(ray, out RaycastHit hit, maxBuildDistance, groundLayer))
             {
-                // --- THIS IS THE FIX ---
-                // We add our vertical offset to the hit point on the ground
                 Vector3 position = hit.point + new Vector3(0, placementYOffset, 0);
-
                 buildPreview.transform.position = position;
                 buildPreview.transform.rotation = Quaternion.FromToRotation(Vector3.up, hit.normal);
             }
@@ -80,11 +82,21 @@ namespace AutoForge.Player
 
         private void PlaceBuilding()
         {
-            if (buildPreview != null)
+            if (buildPreview == null || buildingToPlace == null) return;
+
+            // Check for resources USING THE DATA
+            if (ResourceManager.Instance.HasResource(buildingToPlace.costType, buildingToPlace.costAmount))
             {
-                // We use the preview's already-corrected position
-                Instantiate(buildingPrefab, buildPreview.transform.position, buildPreview.transform.rotation);
-                ToggleBuildMode();
+                // Spend the resources USING THE DATA
+                ResourceManager.Instance.SpendResource(buildingToPlace.costType, buildingToPlace.costAmount);
+
+                // Instantiate the final building from the data's prefab
+                Instantiate(buildingToPlace.buildingPrefab, buildPreview.transform.position, buildPreview.transform.rotation);
+                ToggleBuildMode(); // Exit build mode
+            }
+            else
+            {
+                Debug.Log($"Not enough {buildingToPlace.costType.resourceName}!");
             }
         }
 
@@ -98,4 +110,3 @@ namespace AutoForge.Player
         }
     }
 }
-

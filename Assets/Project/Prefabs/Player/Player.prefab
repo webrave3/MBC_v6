@@ -1726,7 +1726,7 @@ GameObject:
   - component: {fileID: 8868771115895202731}
   - component: {fileID: 8201468692796701950}
   m_Layer: 8
-  m_Name: 2PlayerArmature
+  m_Name: Player
   m_TagString: Player
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -1826,8 +1826,8 @@ MonoBehaviour:
   - {fileID: 8300000, guid: 274649b0e221539409070ebf6c18918b, type: 3}
   - {fileID: 8300000, guid: a3194b8bbc96ef84fab1f98f4b7dae3e, type: 3}
   FootstepAudioVolume: 0.123
-  JumpHeight: 2
-  Gravity: -15
+  JumpHeight: 4
+  Gravity: -20
   JumpTimeout: 0.3
   FallTimeout: 0.15
   Grounded: 1
@@ -1995,7 +1995,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AutoForge.Player.PlayerBuilder
   mainCamera: {fileID: 2269964681122631406}
-  buildingPrefab: {fileID: 947484075853811204, guid: be12350466e022f42b6fafbec5b07b8f, type: 3}
+  buildingToPlace: {fileID: 11400000, guid: 03fd49fdf4428ff47ab33c32b603eb9f, type: 2}
   previewMaterial: {fileID: 2100000, guid: a44a7db7cf3bb4944b242f3f0effb8a6, type: 2}
   groundLayer:
     serializedVersion: 2
