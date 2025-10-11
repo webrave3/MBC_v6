@@ -1,18 +1,15 @@
-using System.Collections.Generic;
 using UnityEngine;
-using System; // For the Action
+using AutoForge.Player; // Required to access PlayerInventory
 
 namespace AutoForge.Core
 {
+    /// <summary>
+    /// Acts as a central point for managing resource transactions.
+    /// It receives requests from other scripts and directs them to the actual inventory system.
+    /// </summary>
     public class ResourceManager : MonoBehaviour
     {
         public static ResourceManager Instance { get; private set; }
-
-        // The core of our inventory: a dictionary that maps a ResourceType to an amount.
-        private Dictionary<ResourceType, int> resourceInventory = new Dictionary<ResourceType, int>();
-
-        // Event to notify other scripts (like the UI) when the inventory changes
-        public static event Action OnResourcesChanged;
 
         private void Awake()
         {
@@ -24,40 +21,48 @@ namespace AutoForge.Core
             Instance = this;
         }
 
+        /// <summary>
+        /// Pass-through method to add a resource to the player's inventory.
+        /// </summary>
         public void AddResource(ResourceType type, int amount)
         {
-            if (resourceInventory.ContainsKey(type))
+            if (PlayerInventory.Instance != null)
             {
-                resourceInventory[type] += amount;
+                PlayerInventory.Instance.AddItem(type, amount);
             }
-            else
-            {
-                resourceInventory.Add(type, amount);
-            }
-            Debug.Log($"Added {amount} {type.resourceName}. New total: {resourceInventory[type]}");
-            OnResourcesChanged?.Invoke(); // Fire the event
         }
 
+        /// <summary>
+        /// Pass-through method to check if the player has enough of a resource.
+        /// </summary>
         public bool HasResource(ResourceType type, int amount)
         {
-            return resourceInventory.ContainsKey(type) && resourceInventory[type] >= amount;
+            if (PlayerInventory.Instance != null)
+            {
+                return PlayerInventory.Instance.HasItem(type, amount);
+            }
+            return false;
         }
 
+        /// <summary>
+        /// Pass-through method to spend a resource from the player's inventory.
+        /// </summary>
         public void SpendResource(ResourceType type, int amount)
         {
-            if (HasResource(type, amount))
+            if (PlayerInventory.Instance != null)
             {
-                resourceInventory[type] -= amount;
-                Debug.Log($"Spent {amount} {type.resourceName}. Remaining: {resourceInventory[type]}");
-                OnResourcesChanged?.Invoke(); // Fire the event
+                PlayerInventory.Instance.RemoveItem(type, amount);
             }
         }
 
+        /// <summary>
+        /// Pass-through method to get the amount of a specific resource.
+        /// </summary>
         public int GetResourceAmount(ResourceType type)
         {
-            if (resourceInventory.ContainsKey(type))
+            if (PlayerInventory.Instance != null)
             {
-                return resourceInventory[type];
+                return PlayerInventory.Instance.GetItemAmount(type);
             }
             return 0;
         }

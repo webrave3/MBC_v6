@@ -1,7 +1,7 @@
 using UnityEngine;
 using TMPro;
 using AutoForge.Player;
-using AutoForge.Core; // <-- ADD THIS
+using AutoForge.Core;
 
 namespace AutoForge.UI
 {
@@ -9,7 +9,10 @@ namespace AutoForge.UI
     {
         [Header("Stats UI")]
         [SerializeField] private TextMeshProUGUI damageText;
-        [SerializeField] private TextMeshProUGUI scrapText; // <-- ADD THIS
+        [SerializeField] private TextMeshProUGUI scrapText;
+
+        // Note: The selectedBuildingText from our previous step is removed here for clarity.
+        // We will re-add it when we build the hotbar.
 
         [Header("Debug Panel")]
         [SerializeField] private GameObject debugPanel;
@@ -28,26 +31,28 @@ namespace AutoForge.UI
             {
                 playerTransform = PlayerStats.Instance.transform;
             }
-            // --- NEW CODE ---
-            // Initial UI update
             UpdateResourcesUI();
-            // --- END NEW CODE ---
         }
 
         private void OnEnable()
         {
             PlayerStats.OnStatsChanged += UpdateStatsUI;
-            // --- NEW CODE ---
-            ResourceManager.OnResourcesChanged += UpdateResourcesUI;
-            // --- END NEW CODE ---
+            // --- FIX ---
+            // Subscribe to the event on PlayerInventory, not ResourceManager
+            if (PlayerInventory.Instance != null)
+            {
+                PlayerInventory.Instance.OnInventoryChanged += UpdateResourcesUI;
+            }
         }
 
         private void OnDisable()
         {
             PlayerStats.OnStatsChanged -= UpdateStatsUI;
-            // --- NEW CODE ---
-            ResourceManager.OnResourcesChanged -= UpdateResourcesUI;
-            // --- END NEW CODE ---
+            // --- FIX ---
+            if (PlayerInventory.Instance != null)
+            {
+                PlayerInventory.Instance.OnInventoryChanged -= UpdateResourcesUI;
+            }
         }
 
         private void UpdateStatsUI(PlayerStats stats)
@@ -58,16 +63,16 @@ namespace AutoForge.UI
             }
         }
 
-        // --- NEW CODE ---
         private void UpdateResourcesUI()
         {
+            // --- FIX ---
+            // This now correctly calls the pass-through method on ResourceManager
             if (ResourceManager.Instance != null && scrapText != null && scrapResourceType != null)
             {
                 int scrapAmount = ResourceManager.Instance.GetResourceAmount(scrapResourceType);
                 scrapText.text = $"SCRAP: {scrapAmount}";
             }
         }
-
 
         private void Update()
         {

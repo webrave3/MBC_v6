@@ -24,7 +24,6 @@ namespace AutoForge.Player
 
         void Awake()
         {
-            // Get a reference to the builder script on this same object
             playerBuilder = GetComponent<PlayerBuilder>();
         }
 
@@ -34,16 +33,18 @@ namespace AutoForge.Player
                 muzzleFlash.enabled = false;
         }
 
-        // Called by the "Attack" Input Action (Left Mouse) from Send Messages
         public void OnAttack(InputValue value)
         {
-            // CRITICAL CHECK: If the builder exists AND is in build mode, do nothing.
+            // --- THIS IS THE FIX ---
+            // If the game is paused, do nothing.
+            if (Time.timeScale == 0f) return;
+            // --- END FIX ---
+
             if (playerBuilder != null && playerBuilder.IsInBuildMode)
             {
-                return; // Exit the function immediately
+                return;
             }
 
-            // If we are not in build mode, then fire the weapon.
             if (value.isPressed)
             {
                 Shoot();
@@ -54,13 +55,11 @@ namespace AutoForge.Player
         {
             if (bulletPrefab == null || playerCamera == null) return;
 
-            // Calculate spawn position based on camera and offsets
             Vector3 spawnPosition = playerCamera.transform.position +
                                     (playerCamera.transform.forward * forwardOffset) +
                                     (playerCamera.transform.right * rightOffset) +
                                     (playerCamera.transform.up * upOffset);
 
-            // Spawn the bullet with the camera's rotation so it aims correctly
             Instantiate(bulletPrefab, spawnPosition, playerCamera.transform.rotation);
 
             StartCoroutine(ShowMuzzleFlash());
@@ -76,4 +75,3 @@ namespace AutoForge.Player
         }
     }
 }
-
