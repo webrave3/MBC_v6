@@ -1,0 +1,18 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f6af6acf70a791848aca04a5833beb87, type: 3}
+  m_Name: DefenseCategory
+  m_EditorClassIdentifier: Assembly-CSharp::AutoForge.Core.BuildCategory
+  categoryName: Defense
+  buildingsInCategory:
+  - {fileID: 11400000, guid: 03fd49fdf4428ff47ab33c32b603eb9f, type: 2}
+  - {fileID: 11400000, guid: 27d6610d594282947b17f0062da5c7e9, type: 2}

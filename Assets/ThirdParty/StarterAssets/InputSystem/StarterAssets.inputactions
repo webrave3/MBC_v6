@@ -52,7 +52,7 @@
                     "initialStateCheck": false
                 },
                 {
-                    "name": "Build",
+                    "name": "ToggleBuildMode",
                     "type": "Button",
                     "id": "8e1f4cd8-7d19-4f90-84e6-e36cdeabc801",
                     "expectedControlType": "",
@@ -64,6 +64,51 @@
                     "name": "ToggleInventory",
                     "type": "Button",
                     "id": "38205fc0-b6c0-4d2b-a79d-93f096669ab1",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                },
+                {
+                    "name": "HotbarBack",
+                    "type": "Button",
+                    "id": "d0b3893f-5809-4cf2-87b2-8a2fb741fbce",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                },
+                {
+                    "name": "Hotbarselect1",
+                    "type": "Button",
+                    "id": "9d2b2604-2296-46ee-8a6b-07a56bc6df63",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                },
+                {
+                    "name": "Hotbarselect2",
+                    "type": "Button",
+                    "id": "a53d2cd7-3db2-48bb-8e64-2970188dbdde",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                },
+                {
+                    "name": "Hotbarselect3",
+                    "type": "Button",
+                    "id": "3e53579a-fb15-4d33-ab72-da91d3d9b3ac",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                },
+                {
+                    "name": "Hotbarselect4",
+                    "type": "Button",
+                    "id": "0bc678a1-ebdb-4944-9ab4-3e71f0e7f0ab",
                     "expectedControlType": "",
                     "processors": "",
                     "interactions": "",
@@ -261,11 +306,11 @@
                 {
                     "name": "",
                     "id": "5c4723c6-50a4-467d-b3c3-8fbcf589ca4c",
-                    "path": "<Keyboard>/b",
+                    "path": "<Keyboard>/tab",
                     "interactions": "",
                     "processors": "",
                     "groups": "",
-                    "action": "Build",
+                    "action": "ToggleBuildMode",
                     "isComposite": false,
                     "isPartOfComposite": false
                 },
@@ -277,6 +322,61 @@
                     "processors": "",
                     "groups": "",
                     "action": "ToggleInventory",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "796cdf1c-264f-470e-9db3-4fec582af3b0",
+                    "path": "<Keyboard>/escape",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "HotbarBack",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "dbed4b97-3081-42c4-8476-00e7ec2dcf36",
+                    "path": "<Keyboard>/1",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Hotbarselect1",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "ada5facf-bbe8-47a0-a90a-18ce4d54c9cb",
+                    "path": "<Keyboard>/2",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Hotbarselect2",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "0c03570e-e096-4c9a-a38f-3e205c0d4526",
+                    "path": "<Keyboard>/3",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Hotbarselect3",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "0a15bc2d-15a0-4dd8-9a6f-3acf8f6e44dd",
+                    "path": "<Keyboard>/4",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Hotbarselect4",
                     "isComposite": false,
                     "isPartOfComposite": false
                 }

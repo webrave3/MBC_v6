@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
 using AutoForge.Core;
+using AutoForge.UI; // Make sure this is included
 
 namespace AutoForge.Player
 {
@@ -8,9 +9,6 @@ namespace AutoForge.Player
     {
         [Header("Required References")]
         [SerializeField] private Camera mainCamera;
-
-        [Header("Building Settings")]
-        [SerializeField] private BuildingData buildingToPlace;
         [SerializeField] private Material previewMaterial;
 
         [Header("Placement Settings")]
@@ -19,49 +17,85 @@ namespace AutoForge.Player
         [SerializeField] private float placementYOffset = 0.5f;
 
         private GameObject buildPreview;
+        private BuildingData currentBuildingData;
         private bool isBuildMode = false;
 
         public bool IsInBuildMode => isBuildMode;
 
-        public void OnBuild(InputValue value)
-        {
-            if (GameManager.Instance != null && GameManager.Instance.IsPlayerInUIMode) return;
-            if (value.isPressed) ToggleBuildMode();
-        }
-
+        // The HotbarManager now handles the "OnBuild" and "OnAttack" for building.
+        // This script now only listens for the final placement click.
         public void OnAttack(InputValue value)
         {
-            if (GameManager.Instance != null && GameManager.Instance.IsPlayerInUIMode) return;
-            if (isBuildMode && value.isPressed) PlaceBuilding();
-        }
-
-        private void ToggleBuildMode()
-        {
-            isBuildMode = !isBuildMode;
-
-            if (isBuildMode && buildingToPlace != null)
+            if (isBuildMode && value.isPressed)
             {
-                buildPreview = Instantiate(buildingToPlace.buildingPrefab);
-                SetLayerRecursively(buildPreview, 2);
-
-                if (buildPreview.TryGetComponent<Renderer>(out var renderer) && previewMaterial != null)
-                {
-                    renderer.material = previewMaterial;
-                }
-                if (buildPreview.TryGetComponent<Core.Building>(out var buildingScript))
-                {
-                    buildingScript.enabled = false;
-                }
-            }
-            else if (buildPreview != null)
-            {
-                Destroy(buildPreview);
+                PlaceBuilding();
             }
         }
 
         private void Update()
         {
-            if (isBuildMode && buildPreview != null) MoveAndAlignPreview();
+            if (isBuildMode && buildPreview != null)
+            {
+                MoveAndAlignPreview();
+            }
+        }
+
+        // This is called by the HotbarManager to start projecting a building
+        public void SetBuildingToPlace(BuildingData data)
+        {
+            if (data == null)
+            {
+                CancelBuildMode();
+                return;
+            }
+
+            isBuildMode = true;
+            currentBuildingData = data;
+
+            if (buildPreview != null) Destroy(buildPreview);
+
+            buildPreview = Instantiate(currentBuildingData.buildingPrefab);
+            SetLayerRecursively(buildPreview, LayerMask.NameToLayer("Ignore Raycast"));
+
+            if (buildPreview.TryGetComponent<Renderer>(out var renderer) && previewMaterial != null)
+            {
+                renderer.material = previewMaterial;
+            }
+            if (buildPreview.TryGetComponent<Building>(out var buildingScript))
+            {
+                buildingScript.enabled = false;
+            }
+        }
+
+        // This is called by the HotbarManager to stop projecting
+        public void CancelBuildMode()
+        {
+            if (buildPreview != null)
+            {
+                Destroy(buildPreview);
+            }
+            isBuildMode = false;
+            currentBuildingData = null;
+        }
+
+        private void PlaceBuilding()
+        {
+            if (buildPreview == null || currentBuildingData == null) return;
+
+            if (ResourceManager.Instance.HasResource(currentBuildingData.costType, currentBuildingData.costAmount))
+            {
+                ResourceManager.Instance.SpendResource(currentBuildingData.costType, currentBuildingData.costAmount);
+                Instantiate(currentBuildingData.buildingPrefab, buildPreview.transform.position, buildPreview.transform.rotation);
+
+                // After placing, we cancel build mode but stay in the UI to select another piece
+                CancelBuildMode();
+                // The error was here. PlayerBuilder should not know about HotbarManager.
+                // We let the manager handle the state.
+            }
+            else
+            {
+                Debug.Log($"Not enough {currentBuildingData.costType.resourceName}!");
+            }
         }
 
         private void MoveAndAlignPreview()
@@ -77,22 +111,6 @@ namespace AutoForge.Player
             }
         }
 
-        private void PlaceBuilding()
-        {
-            if (buildPreview == null || buildingToPlace == null) return;
-
-            if (ResourceManager.Instance.HasResource(buildingToPlace.costType, buildingToPlace.costAmount))
-            {
-                ResourceManager.Instance.SpendResource(buildingToPlace.costType, buildingToPlace.costAmount);
-                Instantiate(buildingToPlace.buildingPrefab, buildPreview.transform.position, buildPreview.transform.rotation);
-                ToggleBuildMode();
-            }
-            else
-            {
-                Debug.Log($"Not enough {buildingToPlace.costType.resourceName}!");
-            }
-        }
-
         private void SetLayerRecursively(GameObject obj, int layer)
         {
             obj.layer = layer;
@@ -103,3 +121,4 @@ namespace AutoForge.Player
         }
     }
 }
+

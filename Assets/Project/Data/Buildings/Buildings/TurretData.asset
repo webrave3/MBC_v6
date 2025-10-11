@@ -10,10 +10,11 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 700e475947f6a9f4f823f74b836719ef, type: 3}
-  m_Name: DamageBoosterData
-  m_EditorClassIdentifier: Assembly-CSharp::AutoForge.Core.BuildingData
-  buildingName: DamageBoosterData
-  buildingPrefab: {fileID: 947484075853811204, guid: be12350466e022f42b6fafbec5b07b8f, type: 3}
+  m_Name: TurretData
+  m_EditorClassIdentifier: Assembly-CSharp::BuildingData
+  buildingName: Turret
+  buildingPrefab: {fileID: 5050166008232711373, guid: 31d23951c48965148957a75229f6cf91, type: 3}
+  buildingIcon: {fileID: 10915, guid: 0000000000000000f000000000000000, type: 0}
   costType: {fileID: 11400000, guid: 233afb50ab6c485409801808b58c4247, type: 2}
-  costAmount: 5
-  damageBonus: 10
+  costAmount: 3
+  damageBonus: 12
