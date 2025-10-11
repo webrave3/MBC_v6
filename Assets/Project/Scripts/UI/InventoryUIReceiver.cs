@@ -1,7 +1,7 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
 using AutoForge.UI;
-using AutoForge.Core; // To access the GameManager
+using AutoForge.Core;
 
 namespace AutoForge.Player
 {
@@ -21,31 +21,21 @@ namespace AutoForge.Player
             if (inventoryUI == null) return;
 
             isInventoryOpen = !isInventoryOpen;
-
             inventoryUI.ToggleInventoryPanel(isInventoryOpen);
             SetCursorState(isInventoryOpen);
 
-            // --- NEW ---
-            // Tell the GameManager about the new state
-            GameManager.Instance.SetPlayerInUIMode(isInventoryOpen);
+            if (GameManager.Instance != null)
+            {
+                GameManager.Instance.SetPlayerInUIMode(isInventoryOpen);
+            }
         }
 
         private void SetCursorState(bool uiModeEnabled)
         {
-            if (uiModeEnabled)
-            {
-                Cursor.lockState = CursorLockMode.None;
-                Cursor.visible = true;
-                // --- REMOVED ---
-                // Time.timeScale = 0f; // We no longer pause the game
-            }
-            else
-            {
-                Cursor.lockState = CursorLockMode.Locked;
-                Cursor.visible = false;
-                // --- CHANGED ---
-                Time.timeScale = 1f; // Ensure game is unpaused when closing UI
-            }
+            Cursor.lockState = uiModeEnabled ? CursorLockMode.None : CursorLockMode.Locked;
+            Cursor.visible = uiModeEnabled;
+            // No longer pausing the game
+            Time.timeScale = 1f;
         }
     }
 }

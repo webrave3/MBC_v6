@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 using AutoForge.Core;
 
@@ -19,6 +20,7 @@ namespace AutoForge.Player
             if (Instance != null && Instance != this) { Destroy(gameObject); return; }
             Instance = this;
 
+            // Initialize inventory with nulls to represent empty slots
             for (int i = 0; i < inventorySize; i++)
             {
                 items.Add(null);
@@ -27,6 +29,7 @@ namespace AutoForge.Player
 
         public bool AddItem(ResourceType type, int amount)
         {
+            // First, try to stack with existing items
             for (int i = 0; i < items.Count; i++)
             {
                 if (items[i] != null && items[i].itemType == type)
@@ -37,6 +40,7 @@ namespace AutoForge.Player
                 }
             }
 
+            // If no existing stack, find the first empty slot
             for (int i = 0; i < items.Count; i++)
             {
                 if (items[i] == null)
@@ -46,12 +50,10 @@ namespace AutoForge.Player
                     return true;
                 }
             }
+
+            Debug.LogWarning($"Inventory is full! Could not add {amount} of {type.resourceName}.");
             return false;
         }
-
-        // --- NEW METHODS ---
-
-        // Add this new method inside the PlayerInventory class:
 
         public void SwapItems(int indexA, int indexB)
         {
@@ -61,55 +63,41 @@ namespace AutoForge.Player
                 return;
             }
 
-            // Simple swap logic
             InventoryItem temp = items[indexA];
             items[indexA] = items[indexB];
             items[indexB] = temp;
 
-            // IMPORTANT: Notify the UI that the inventory has changed so it can redraw.
             OnInventoryChanged?.Invoke();
-        }
-
-
-        public bool HasItem(ResourceType type, int amount)
-        {
-            foreach (var item in items)
-            {
-                if (item != null && item.itemType == type && item.amount >= amount)
-                {
-                    return true;
-                }
-            }
-            return false;
         }
 
         public void RemoveItem(ResourceType type, int amount)
         {
-            for (int i = 0; i < items.Count; i++)
+            for (int i = items.Count - 1; i >= 0; i--)
             {
+                if (amount <= 0) break; // Exit if we've removed enough
+
                 if (items[i] != null && items[i].itemType == type)
                 {
-                    items[i].amount -= amount;
-                    if (items[i].amount <= 0)
+                    if (items[i].amount > amount)
                     {
-                        items[i] = null; // Remove the item if stack is empty
+                        items[i].amount -= amount;
+                        amount = 0;
                     }
-                    OnInventoryChanged?.Invoke();
-                    return;
+                    else
+                    {
+                        amount -= items[i].amount;
+                        items[i] = null;
+                    }
                 }
             }
+            OnInventoryChanged?.Invoke();
         }
 
         public int GetItemAmount(ResourceType type)
         {
-            foreach (var item in items)
-            {
-                if (item != null && item.itemType == type)
-                {
-                    return item.amount;
-                }
-            }
-            return 0;
+            // Correctly sums up the amount from ALL stacks of the item.
+            return items.Where(item => item != null && item.itemType == type).Sum(item => item.amount);
         }
     }
 }
+
