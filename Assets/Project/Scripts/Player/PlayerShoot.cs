@@ -1,6 +1,7 @@
 using System.Collections;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using AutoForge.Core;
 
 namespace AutoForge.Player
 {
@@ -35,10 +36,8 @@ namespace AutoForge.Player
 
         public void OnAttack(InputValue value)
         {
-            // --- THIS IS THE FIX ---
-            // If the game is paused, do nothing.
+            if (GameManager.Instance != null && GameManager.Instance.IsPlayerInUIMode) return;
             if (Time.timeScale == 0f) return;
-            // --- END FIX ---
 
             if (playerBuilder != null && playerBuilder.IsInBuildMode)
             {

@@ -1,6 +1,6 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
-using AutoForge.Core; // ADD THIS LINE to access the GameManager
+using AutoForge.Core;
 
 namespace StarterAssets
 {
@@ -42,11 +42,11 @@ namespace StarterAssets
             SprintInput(value.isPressed);
         }
 
-        private void LateUpdate()
+        private void Update()
         {
-            if (GameManager.Instance != null && GameManager.Instance.IsPlayerInUIMode)
+            if (GameManager.Instance != null)
             {
-                look = Vector2.zero;
+                cursorInputForLook = !GameManager.Instance.IsPlayerInUIMode;
             }
         }
 
@@ -69,17 +69,5 @@ namespace StarterAssets
         {
             sprint = newSprintState;
         }
-
-        private void OnApplicationFocus(bool hasFocus)
-        {
-            SetCursorState(cursorLocked);
-        }
-
-        private void SetCursorState(bool newState)
-        {
-            Cursor.lockState = newState ? CursorLockMode.Locked : CursorLockMode.None;
-        }
     }
-
 }
-

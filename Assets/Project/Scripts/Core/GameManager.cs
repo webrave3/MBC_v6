@@ -29,12 +29,15 @@ namespace AutoForge.Core
         void Start()
         {
             ChangeState(GameState.Playing);
+            // Ensure the game starts in the correct state
             SetPlayerInUIMode(false);
         }
 
         public void SetPlayerInUIMode(bool isInUI)
         {
             IsPlayerInUIMode = isInUI;
+            Cursor.lockState = isInUI ? CursorLockMode.None : CursorLockMode.Locked;
+            Cursor.visible = isInUI;
         }
 
         public void ChangeState(GameState newState)
@@ -44,4 +47,3 @@ namespace AutoForge.Core
         }
     }
 }
-

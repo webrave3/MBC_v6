@@ -1,6 +1,6 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
-using AutoForge.Core; // We need this namespace
+using AutoForge.Core;
 
 namespace AutoForge.Player
 {
@@ -9,12 +9,9 @@ namespace AutoForge.Player
         [Header("Required References")]
         [SerializeField] private Camera mainCamera;
 
-        // --- REFACTORED BUILDING LOGIC ---
         [Header("Building Settings")]
-        [Tooltip("The building data for the object we want to place.")]
-        [SerializeField] private BuildingData buildingToPlace; // This replaces the prefab and cost fields
+        [SerializeField] private BuildingData buildingToPlace;
         [SerializeField] private Material previewMaterial;
-        // --- END REFACTORED LOGIC ---
 
         [Header("Placement Settings")]
         [SerializeField] private LayerMask groundLayer;
@@ -28,11 +25,13 @@ namespace AutoForge.Player
 
         public void OnBuild(InputValue value)
         {
+            if (GameManager.Instance != null && GameManager.Instance.IsPlayerInUIMode) return;
             if (value.isPressed) ToggleBuildMode();
         }
 
         public void OnAttack(InputValue value)
         {
+            if (GameManager.Instance != null && GameManager.Instance.IsPlayerInUIMode) return;
             if (isBuildMode && value.isPressed) PlaceBuilding();
         }
 
@@ -40,12 +39,10 @@ namespace AutoForge.Player
         {
             isBuildMode = !isBuildMode;
 
-            // We must have a building selected to enter build mode
             if (isBuildMode && buildingToPlace != null)
             {
-                // Instantiate the preview from the data's prefab
                 buildPreview = Instantiate(buildingToPlace.buildingPrefab);
-                SetLayerRecursively(buildPreview, 2); // Ignore Raycast
+                SetLayerRecursively(buildPreview, 2);
 
                 if (buildPreview.TryGetComponent<Renderer>(out var renderer) && previewMaterial != null)
                 {
@@ -53,7 +50,7 @@ namespace AutoForge.Player
                 }
                 if (buildPreview.TryGetComponent<Core.Building>(out var buildingScript))
                 {
-                    buildingScript.enabled = false; // Disable logic on the preview
+                    buildingScript.enabled = false;
                 }
             }
             else if (buildPreview != null)
@@ -84,15 +81,11 @@ namespace AutoForge.Player
         {
             if (buildPreview == null || buildingToPlace == null) return;
 
-            // Check for resources USING THE DATA
             if (ResourceManager.Instance.HasResource(buildingToPlace.costType, buildingToPlace.costAmount))
             {
-                // Spend the resources USING THE DATA
                 ResourceManager.Instance.SpendResource(buildingToPlace.costType, buildingToPlace.costAmount);
-
-                // Instantiate the final building from the data's prefab
                 Instantiate(buildingToPlace.buildingPrefab, buildPreview.transform.position, buildPreview.transform.rotation);
-                ToggleBuildMode(); // Exit build mode
+                ToggleBuildMode();
             }
             else
             {

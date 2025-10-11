@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
-using UnityEngine.InputSystem; // <-- 1. ADD THIS to use the new Input System
+using UnityEngine.InputSystem;
 using TMPro;
 using AutoForge.Player;
 using AutoForge.Core;
@@ -53,7 +53,6 @@ namespace AutoForge.UI
         {
             if (dragIcon != null && dragIcon.enabled)
             {
-                // --- 2. THIS IS THE FIX for the mouse position error ---
                 dragIcon.transform.position = Mouse.current.position.ReadValue();
             }
         }
@@ -61,6 +60,10 @@ namespace AutoForge.UI
         public void ToggleInventoryPanel(bool show)
         {
             inventoryPanel.SetActive(show);
+            if (GameManager.Instance != null)
+            {
+                GameManager.Instance.SetPlayerInUIMode(show);
+            }
         }
 
         private void InitializeInventory()
@@ -91,9 +94,7 @@ namespace AutoForge.UI
             if (PlayerInventory.Instance.items[slotIndex] != null && dragIcon != null)
             {
                 dragIcon.sprite = PlayerInventory.Instance.items[slotIndex].itemType.resourceIcon;
-
-                // --- 3. THIS IS THE FIX for the invisible drag icon ---
-                dragIcon.color = Color.white; // Force it to be fully visible
+                dragIcon.color = Color.white;
                 dragIcon.enabled = true;
             }
         }
@@ -133,4 +134,3 @@ namespace AutoForge.UI
         }
     }
 }
-
