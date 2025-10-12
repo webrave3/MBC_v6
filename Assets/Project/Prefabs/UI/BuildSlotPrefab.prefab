@@ -223,6 +223,7 @@ GameObject:
   - component: {fileID: 1445127436878350097}
   - component: {fileID: 4466267712474204143}
   - component: {fileID: 6720870985216140987}
+  - component: {fileID: 3656368342305585467}
   m_Layer: 5
   m_Name: BuildSlotPrefab
   m_TagString: Untagged
@@ -288,3 +289,17 @@ MonoBehaviour:
   m_FillOrigin: 0
   m_UseSpriteMesh: 0
   m_PixelsPerUnitMultiplier: 1
+--- !u!114 &3656368342305585467
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4744210808327940897}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 00288ea15d82808408f646f6e67b8894, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AutoForge.UI.BuildSlotUI
+  labelText: {fileID: 3305669747555725612}
+  iconImage: {fileID: 3208503220316724971}

@@ -10,7 +10,12 @@ namespace AutoForge.Player
 
         [Header("Required References")]
         [SerializeField] private Camera mainCamera;
-        [SerializeField] private Material previewMaterial;
+
+        // --- UPDATED MATERIAL FIELD ---
+        [Tooltip("A transparent material used as a template for the preview.")]
+        [SerializeField] private Material transparentPreviewMaterial;
+        // --- END UPDATE ---
+
         [Header("Placement Settings")]
         [SerializeField] private LayerMask groundLayer;
         [SerializeField] private float maxBuildDistance = 100f;
@@ -57,14 +62,38 @@ namespace AutoForge.Player
             isBuildMode = true;
             currentBuildingData = data;
             if (buildPreview != null) Destroy(buildPreview);
+
             buildPreview = Instantiate(currentBuildingData.buildingPrefab);
             SetLayerRecursively(buildPreview, LayerMask.NameToLayer("Ignore Raycast"));
-            Renderer[] renderers = buildPreview.GetComponentsInChildren<Renderer>();
-            foreach (Renderer renderer in renderers)
+
+            // --- NEW TRANSPARENCY LOGIC ---
+            if (transparentPreviewMaterial != null)
             {
-                if (previewMaterial != null) renderer.material = previewMaterial;
+                Renderer[] renderers = buildPreview.GetComponentsInChildren<Renderer>();
+                foreach (Renderer renderer in renderers)
+                {
+                    Material[] originalMaterials = renderer.materials;
+                    Material[] transparentMaterials = new Material[originalMaterials.Length];
+
+                    for (int i = 0; i < originalMaterials.Length; i++)
+                    {
+                        transparentMaterials[i] = new Material(transparentPreviewMaterial);
+                        transparentMaterials[i].mainTexture = originalMaterials[i].mainTexture;
+                        transparentMaterials[i].color = new Color(
+                            originalMaterials[i].color.r,
+                            originalMaterials[i].color.g,
+                            originalMaterials[i].color.b,
+                            transparentPreviewMaterial.color.a);
+                    }
+                    renderer.materials = transparentMaterials;
+                }
             }
-            if (buildPreview.TryGetComponent<Building>(out var buildingScript)) buildingScript.enabled = false;
+            // --- END NEW LOGIC ---
+
+            if (buildPreview.TryGetComponent<Building>(out var buildingScript))
+            {
+                buildingScript.enabled = false;
+            }
         }
 
         public void CancelBuildMode()

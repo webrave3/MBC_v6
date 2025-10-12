@@ -20,39 +20,15 @@ namespace AutoForge.UI
 
         private void Awake()
         {
-            if (Instance != null && Instance != this)
-            {
-                Destroy(gameObject);
-                return;
-            }
+            if (Instance != null && Instance != this) { Destroy(gameObject); return; }
             Instance = this;
 
-            // --- THE FINAL FOOLPROOF FIX ---
-            // This correctly looks for DIRECT CHILDREN of this GameObject.
             actionHotbarPanel = transform.Find("ActionHotbarPanel")?.gameObject;
             buildHotbarPanel = transform.Find("BuildHotbarPanel")?.gameObject;
-            // --- END FIX ---
+            if (buildHotbarPanel != null) buildSlotsParent = buildHotbarPanel.transform;
 
-            if (actionHotbarPanel == null) Debug.LogError("KineticHotbarUI Error: Could not find a child GameObject named 'ActionHotbarPanel'. It must be a direct child of this object.", this);
-            if (buildHotbarPanel == null) Debug.LogError("KineticHotbarUI Error: Could not find a child GameObject named 'BuildHotbarPanel'. It must be a direct child of this object.", this);
-            else
-            {
-                buildSlotsParent = buildHotbarPanel.transform;
-            }
-
-            if (buildSlotPrefab == null) Debug.LogError("KineticHotbarUI Error: The 'Build Slot Prefab' has not been assigned in the Inspector! Please drag it from the Project folder.", this);
-
-            if (actionHotbarPanel != null) actionHotbarPanel.SetActive(false);
+            if (actionHotbarPanel != null) actionHotbarPanel.SetActive(true);
             if (buildHotbarPanel != null) buildHotbarPanel.SetActive(false);
-        }
-
-        private void Start()
-        {
-            // Set the initial state correctly
-            if (actionHotbarPanel != null)
-            {
-                ShowActionMode();
-            }
         }
 
         public void ShowActionMode()
@@ -72,11 +48,13 @@ namespace AutoForge.UI
             for (int i = 0; i < categories.Count; i++)
             {
                 GameObject slotGO = Instantiate(buildSlotPrefab, buildSlotsParent);
-                slotGO.GetComponentInChildren<TextMeshProUGUI>().text = $"[{i + 1}] {categories[i].categoryName}";
+                BuildSlotUI slotUI = slotGO.GetComponent<BuildSlotUI>();
 
-                Image icon = slotGO.transform.Find("Icon")?.GetComponent<Image>();
-                if (icon != null) icon.enabled = false;
-
+                if (slotUI != null)
+                {
+                    slotUI.labelText.text = $"[{i + 1}] {categories[i].categoryName}";
+                    slotUI.iconImage.enabled = false;
+                }
                 activeSlots.Add(slotGO);
             }
         }
@@ -87,20 +65,22 @@ namespace AutoForge.UI
             actionHotbarPanel.SetActive(false);
             buildHotbarPanel.SetActive(true);
             ClearSlots();
-
             if (category == null) return;
 
             for (int i = 0; i < category.buildingsInCategory.Count; i++)
             {
                 GameObject slotGO = Instantiate(buildSlotPrefab, buildSlotsParent);
+                BuildSlotUI slotUI = slotGO.GetComponent<BuildSlotUI>();
                 BuildingData data = category.buildingsInCategory[i];
 
-                slotGO.GetComponentInChildren<TextMeshProUGUI>().text = $"[{i + 1}]";
-                Image icon = slotGO.transform.Find("Icon")?.GetComponent<Image>();
-                if (icon != null)
+                if (slotUI != null)
                 {
-                    icon.sprite = data.buildingIcon;
-                    icon.enabled = true;
+                    // --- UPDATED LOGIC ---
+                    // Display the building's actual name and icon
+                    slotUI.labelText.text = data.buildingName;
+                    slotUI.iconImage.sprite = data.buildingIcon;
+                    slotUI.iconImage.enabled = true;
+                    // --- END UPDATED LOGIC ---
                 }
                 activeSlots.Add(slotGO);
             }
@@ -116,4 +96,3 @@ namespace AutoForge.UI
         }
     }
 }
-

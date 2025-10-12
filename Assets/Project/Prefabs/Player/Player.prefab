@@ -2000,7 +2000,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AutoForge.Player.PlayerBuilder
   mainCamera: {fileID: 2269964681122631406}
-  previewMaterial: {fileID: 2100000, guid: a44a7db7cf3bb4944b242f3f0effb8a6, type: 2}
+  previewMaterial: {fileID: 0}
   groundLayer:
     serializedVersion: 2
     m_Bits: 1

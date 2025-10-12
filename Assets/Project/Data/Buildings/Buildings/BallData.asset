@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BuildingData
   buildingName: Ball
   buildingPrefab: {fileID: 913739234210421078, guid: 36e73b7be3fc9054683b1e10c496062c, type: 3}
-  buildingIcon: {fileID: 10905, guid: 0000000000000000f000000000000000, type: 0}
+  buildingIcon: {fileID: 0}
   costType: {fileID: 11400000, guid: 233afb50ab6c485409801808b58c4247, type: 2}
   costAmount: 25
   damageBonus: 63

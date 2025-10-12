@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BuildingData
   buildingName: Turret
   buildingPrefab: {fileID: 5050166008232711373, guid: 31d23951c48965148957a75229f6cf91, type: 3}
-  buildingIcon: {fileID: 10915, guid: 0000000000000000f000000000000000, type: 0}
+  buildingIcon: {fileID: 0}
   costType: {fileID: 11400000, guid: 233afb50ab6c485409801808b58c4247, type: 2}
   costAmount: 3
   damageBonus: 12
