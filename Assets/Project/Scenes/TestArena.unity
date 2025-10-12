@@ -1978,6 +1978,38 @@ PrefabInstance:
       propertyPath: m_Name
       value: HotbarUI_Controller
       objectReference: {fileID: 0}
+    - target: {fileID: 9113906768435551001, guid: 087b64fb8da69584c9728d97872f192f, type: 3}
+      propertyPath: m_AnchorMax.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 9113906768435551001, guid: 087b64fb8da69584c9728d97872f192f, type: 3}
+      propertyPath: m_AnchorMin.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 9113906768435551001, guid: 087b64fb8da69584c9728d97872f192f, type: 3}
+      propertyPath: m_AnchoredPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 9113906768435551001, guid: 087b64fb8da69584c9728d97872f192f, type: 3}
+      propertyPath: m_AnchoredPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 9176620054838765761, guid: 087b64fb8da69584c9728d97872f192f, type: 3}
+      propertyPath: m_AnchorMax.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 9176620054838765761, guid: 087b64fb8da69584c9728d97872f192f, type: 3}
+      propertyPath: m_AnchorMin.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 9176620054838765761, guid: 087b64fb8da69584c9728d97872f192f, type: 3}
+      propertyPath: m_AnchoredPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 9176620054838765761, guid: 087b64fb8da69584c9728d97872f192f, type: 3}
+      propertyPath: m_AnchoredPosition.y
+      value: 0
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []

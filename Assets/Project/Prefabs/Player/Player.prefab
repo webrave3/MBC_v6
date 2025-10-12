@@ -2084,10 +2084,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 520e737371f1c3744b07fbcc9a6b45fd, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AutoForge.UI.HotbarManager
-  buildCategories:
+  buildCategoriesTier1:
   - {fileID: 11400000, guid: ffd65b6b99ffceb4db5eb5434df87e9b, type: 2}
   - {fileID: 11400000, guid: 731d0b6a129f186459543ead2c94d3bc, type: 2}
-  hotbarUIObject: {fileID: 0}
 --- !u!1 &6586177860892118180
 GameObject:
   m_ObjectHideFlags: 0

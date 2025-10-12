@@ -52,7 +52,7 @@
                     "initialStateCheck": false
                 },
                 {
-                    "name": "ToggleBuildMode",
+                    "name": "BuildMode",
                     "type": "Button",
                     "id": "8e1f4cd8-7d19-4f90-84e6-e36cdeabc801",
                     "expectedControlType": "",
@@ -70,7 +70,7 @@
                     "initialStateCheck": false
                 },
                 {
-                    "name": "HotbarBack",
+                    "name": "CancelPlacement",
                     "type": "Button",
                     "id": "d0b3893f-5809-4cf2-87b2-8a2fb741fbce",
                     "expectedControlType": "",
@@ -79,7 +79,7 @@
                     "initialStateCheck": false
                 },
                 {
-                    "name": "Hotbarselect1",
+                    "name": "BuildSlot1",
                     "type": "Button",
                     "id": "9d2b2604-2296-46ee-8a6b-07a56bc6df63",
                     "expectedControlType": "",
@@ -88,7 +88,7 @@
                     "initialStateCheck": false
                 },
                 {
-                    "name": "Hotbarselect2",
+                    "name": "BuildSlot2",
                     "type": "Button",
                     "id": "a53d2cd7-3db2-48bb-8e64-2970188dbdde",
                     "expectedControlType": "",
@@ -97,7 +97,7 @@
                     "initialStateCheck": false
                 },
                 {
-                    "name": "Hotbarselect3",
+                    "name": "BuildSlot3",
                     "type": "Button",
                     "id": "3e53579a-fb15-4d33-ab72-da91d3d9b3ac",
                     "expectedControlType": "",
@@ -106,9 +106,18 @@
                     "initialStateCheck": false
                 },
                 {
-                    "name": "Hotbarselect4",
+                    "name": "BuildSlot4",
                     "type": "Button",
                     "id": "0bc678a1-ebdb-4944-9ab4-3e71f0e7f0ab",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                },
+                {
+                    "name": "BuildBack",
+                    "type": "Button",
+                    "id": "99acf22c-f696-4b53-88d2-5d09e8212d3c",
                     "expectedControlType": "",
                     "processors": "",
                     "interactions": "",
@@ -310,7 +319,7 @@
                     "interactions": "",
                     "processors": "",
                     "groups": "",
-                    "action": "ToggleBuildMode",
+                    "action": "BuildMode",
                     "isComposite": false,
                     "isPartOfComposite": false
                 },
@@ -328,11 +337,11 @@
                 {
                     "name": "",
                     "id": "796cdf1c-264f-470e-9db3-4fec582af3b0",
-                    "path": "<Keyboard>/escape",
+                    "path": "<Mouse>/rightButton",
                     "interactions": "",
                     "processors": "",
                     "groups": "",
-                    "action": "HotbarBack",
+                    "action": "CancelPlacement",
                     "isComposite": false,
                     "isPartOfComposite": false
                 },
@@ -343,7 +352,7 @@
                     "interactions": "",
                     "processors": "",
                     "groups": "",
-                    "action": "Hotbarselect1",
+                    "action": "BuildSlot1",
                     "isComposite": false,
                     "isPartOfComposite": false
                 },
@@ -354,7 +363,7 @@
                     "interactions": "",
                     "processors": "",
                     "groups": "",
-                    "action": "Hotbarselect2",
+                    "action": "BuildSlot2",
                     "isComposite": false,
                     "isPartOfComposite": false
                 },
@@ -365,7 +374,7 @@
                     "interactions": "",
                     "processors": "",
                     "groups": "",
-                    "action": "Hotbarselect3",
+                    "action": "BuildSlot3",
                     "isComposite": false,
                     "isPartOfComposite": false
                 },
@@ -376,7 +385,29 @@
                     "interactions": "",
                     "processors": "",
                     "groups": "",
-                    "action": "Hotbarselect4",
+                    "action": "BuildSlot4",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "fc1f632d-5393-4494-9c94-d1e11853e99a",
+                    "path": "<Keyboard>/q",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "BuildBack",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "a1c609ef-58b9-488f-940e-4b2428e23b19",
+                    "path": "<Keyboard>/escape",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "BuildBack",
                     "isComposite": false,
                     "isPartOfComposite": false
                 }

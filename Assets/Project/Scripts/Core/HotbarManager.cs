@@ -1,131 +1,114 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
-using AutoForge.Core;
+using AutoForge.UI;
 using AutoForge.Player;
 
-namespace AutoForge.UI
+namespace AutoForge.Core
 {
     public class HotbarManager : MonoBehaviour
     {
-        // --- SINGLETON PATTERN ---
         public static HotbarManager Instance { get; private set; }
-        // -------------------------
 
-        private enum HotbarState { Action, Build_Tier1, Build_Tier2 }
-        private HotbarState currentState;
+        [Header("Build Categories")]
+        [SerializeField] private List<BuildCategory> buildCategoriesTier1;
 
-        [Header("Data References")]
-        [SerializeField] private List<BuildCategory> buildCategories = new List<BuildCategory>();
-
-        private PlayerBuilder playerBuilder;
-        private KineticHotbarUI hotbarUI;
-        private BuildCategory currentBuildCategory;
+        private enum BuildState { None, Tier1_Categories, Tier2_Buildings }
+        private BuildState currentBuildState = BuildState.None;
+        private BuildCategory selectedCategory;
+        private bool isBuildModeActive = false;
 
         private void Awake()
         {
-            // --- SINGLETON SETUP ---
-            if (Instance != null && Instance != this)
-            {
-                Destroy(gameObject);
-                return;
-            }
+            if (Instance != null && Instance != this) { Destroy(gameObject); return; }
             Instance = this;
-            // ---------------------
-
-            playerBuilder = GetComponent<PlayerBuilder>();
-
-            // The Singleton for KineticHotbarUI is set in its own Awake,
-            // so we can safely grab it here.
-            hotbarUI = KineticHotbarUI.Instance;
-
-            if (playerBuilder == null) Debug.LogError("HotbarManager Error: PlayerBuilder component not found on the same GameObject.", this);
-            if (hotbarUI == null) Debug.LogError("HotbarManager Error: Could not find an active KineticHotbarUI instance in the scene! Ensure the HotbarUI_Controller is in the scene and enabled.", this);
         }
 
-        private void Start()
+        // --- INPUT SYSTEM HOOKS (Called by SendMessage) ---
+
+        public void OnBuildMode(InputValue value)
         {
-            ChangeState(HotbarState.Action);
+            if (value.isPressed) ToggleBuildMode();
         }
 
-        public void OnToggleBuildMode(InputValue value)
+        public void OnBuildSlot1(InputValue value) { if (value.isPressed) OnHotbarInput(0); }
+        public void OnBuildSlot2(InputValue value) { if (value.isPressed) OnHotbarInput(1); }
+        public void OnBuildSlot3(InputValue value) { if (value.isPressed) OnHotbarInput(2); }
+        public void OnBuildSlot4(InputValue value) { if (value.isPressed) OnHotbarInput(3); }
+
+        public void OnBuildBack(InputValue value)
         {
-            if (value.isPressed)
+            if (value.isPressed && isBuildModeActive)
             {
-                if (currentState == HotbarState.Action)
-                {
-                    ChangeState(HotbarState.Build_Tier1);
-                }
-                else
-                {
-                    ChangeState(HotbarState.Action);
-                }
+                NavigateBack();
             }
         }
 
-        public void OnHotbarBack(InputValue value)
-        {
-            if (value.isPressed && currentState == HotbarState.Build_Tier2)
-            {
-                ChangeState(HotbarState.Build_Tier1);
-            }
-        }
+        // --- INTERNAL LOGIC ---
 
-        public void OnHotbarSelect1(InputValue value) => HandleHotbarSelection(0);
-        public void OnHotbarSelect2(InputValue value) => HandleHotbarSelection(1);
-        public void OnHotbarSelect3(InputValue value) => HandleHotbarSelection(2);
-        public void OnHotbarSelect4(InputValue value) => HandleHotbarSelection(3);
-
-        private void HandleHotbarSelection(int index)
+        private void ToggleBuildMode()
         {
-            if (currentState == HotbarState.Build_Tier1)
+            isBuildModeActive = !isBuildModeActive;
+
+            if (isBuildModeActive)
             {
-                if (index < buildCategories.Count)
-                {
-                    currentBuildCategory = buildCategories[index];
-                    ChangeState(HotbarState.Build_Tier2);
-                }
+                currentBuildState = BuildState.Tier1_Categories;
+                KineticHotbarUI.Instance.ShowBuildTier1(buildCategoriesTier1);
             }
-            else if (currentState == HotbarState.Build_Tier2)
+            else
             {
-                if (currentBuildCategory != null && index < currentBuildCategory.buildingsInCategory.Count)
+                currentBuildState = BuildState.None;
+                KineticHotbarUI.Instance.ShowActionMode();
+
+                if (PlayerBuilder.Instance != null)
                 {
-                    BuildingData selectedBuilding = currentBuildCategory.buildingsInCategory[index];
-                    playerBuilder.SetBuildingToPlace(selectedBuilding);
-                    ChangeState(HotbarState.Action); // Switch back to action mode to place the item
+                    PlayerBuilder.Instance.CancelBuildMode();
                 }
             }
         }
 
-        private void ChangeState(HotbarState newState)
+        private void OnHotbarInput(int slotIndex)
         {
-            if (hotbarUI == null) return; // Safety check
+            if (!isBuildModeActive) return;
 
-            currentState = newState;
-            Debug.Log("<color=cyan>[HotbarManager]</color> State changed to: " + currentState);
-
-            bool isInUI = (currentState != HotbarState.Action);
-            GameManager.Instance.SetPlayerInUIMode(isInUI);
-
-            // Only tell the builder to cancel if we are explicitly returning to Action mode
-            if (!isInUI)
+            if (currentBuildState == BuildState.Tier1_Categories)
             {
-                playerBuilder.CancelBuildMode();
+                if (slotIndex < buildCategoriesTier1.Count)
+                {
+                    selectedCategory = buildCategoriesTier1[slotIndex];
+                    currentBuildState = BuildState.Tier2_Buildings;
+                    KineticHotbarUI.Instance.ShowBuildTier2(selectedCategory);
+                }
+            }
+            else if (currentBuildState == BuildState.Tier2_Buildings)
+            {
+                if (selectedCategory != null && slotIndex < selectedCategory.buildingsInCategory.Count)
+                {
+                    BuildingData selectedBuilding = selectedCategory.buildingsInCategory[slotIndex];
+                    if (PlayerBuilder.Instance != null)
+                    {
+                        PlayerBuilder.Instance.SelectBuildingToPlace(selectedBuilding);
+                    }
+                }
+            }
+        }
+
+        private void NavigateBack()
+        {
+            if (PlayerBuilder.Instance != null)
+            {
+                PlayerBuilder.Instance.CancelBuildMode();
             }
 
-            switch (currentState)
+            if (currentBuildState == BuildState.Tier2_Buildings)
             {
-                case HotbarState.Action:
-                    hotbarUI.ShowActionMode();
-                    break;
-                case HotbarState.Build_Tier1:
-                    hotbarUI.ShowBuildTier1(buildCategories);
-                    break;
-                case HotbarState.Build_Tier2:
-                    hotbarUI.ShowBuildTier2(currentBuildCategory);
-                    break;
+                currentBuildState = BuildState.Tier1_Categories;
+                KineticHotbarUI.Instance.ShowBuildTier1(buildCategoriesTier1);
+            }
+            else if (currentBuildState == BuildState.Tier1_Categories)
+            {
+                ToggleBuildMode();
             }
         }
     }
 }
-

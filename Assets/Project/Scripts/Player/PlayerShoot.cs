@@ -2,6 +2,7 @@ using System.Collections;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using AutoForge.Core;
+using AutoForge.Player;
 
 namespace AutoForge.Player
 {
@@ -36,6 +37,12 @@ namespace AutoForge.Player
 
         public void OnAttack(InputValue value)
         {
+            if (PlayerBuilder.Instance != null && PlayerBuilder.Instance.IsInBuildMode)
+            {
+                return;
+            }
+            
+
             if (GameManager.Instance != null && GameManager.Instance.IsPlayerInUIMode) return;
             if (Time.timeScale == 0f) return;
 
