@@ -1,0 +1,20 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 700e475947f6a9f4f823f74b836719ef, type: 3}
+  m_Name: FactoryTileData
+  m_EditorClassIdentifier: Assembly-CSharp::BuildingData
+  buildingName: Factory Tile
+  buildingPrefab: {fileID: 7819179782035596596, guid: 48914c477c8807d4ab6fcf9f810843da, type: 3}
+  buildingIcon: {fileID: 0}
+  costType: {fileID: 11400000, guid: 233afb50ab6c485409801808b58c4247, type: 2}
+  costAmount: 1
+  damageBonus: 0

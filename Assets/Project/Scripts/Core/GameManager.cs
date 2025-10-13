@@ -8,6 +8,9 @@ namespace AutoForge.Core
 
         public bool IsPlayerInUIMode { get; private set; }
 
+        // Add this line to hold the factory prefab
+        public GameObject mobileFactoryPrefab;
+
         public enum GameState
         {
             Playing,
@@ -31,6 +34,9 @@ namespace AutoForge.Core
             ChangeState(GameState.Playing);
             // Ensure the game starts in the correct state
             SetPlayerInUIMode(false);
+
+            // Add this line to spawn the factory at the start of the game
+            Instantiate(mobileFactoryPrefab, new Vector3(0, 0, 5), Quaternion.identity);
         }
 
         public void SetPlayerInUIMode(bool isInUI)

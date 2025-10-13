@@ -2004,6 +2004,12 @@ MonoBehaviour:
   groundLayer:
     serializedVersion: 2
     m_Bits: 1
+  socketLayer:
+    serializedVersion: 2
+    m_Bits: 128
+  factoryFloorLayer:
+    serializedVersion: 2
+    m_Bits: 512
   maxBuildDistance: 50
   placementYOffset: 1
 --- !u!114 &7143359290261781911

@@ -15,4 +15,4 @@ MonoBehaviour:
   categoryName: Logistics
   buildingsInCategory:
   - {fileID: 11400000, guid: 7fef4af7b90e53546ad90ec8c364b06e, type: 2}
-  - {fileID: 11400000, guid: e0b548be7c4c41841952f214e106e3c2, type: 2}
+  - {fileID: 11400000, guid: 4080b70216247cf45848d17d76423177, type: 2}

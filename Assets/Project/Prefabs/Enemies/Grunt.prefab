@@ -132,7 +132,7 @@ MonoBehaviour:
   enemyData: {fileID: 11400000, guid: 19b4e6565e4ea4545aefa790f09d4a40, type: 2}
   resourcePickupPrefab: {fileID: 5178923652191353588, guid: 7d89fa9cc954c9d418a212fdd41c95b0, type: 3}
   lootDropType: {fileID: 11400000, guid: 233afb50ab6c485409801808b58c4247, type: 2}
-  lootAmount: 5
+  lootAmount: 25
   healthTextPrefab: {fileID: 8318689894986052360, guid: 436b9d5b8125c6d42981a855a1d8f93e, type: 3}
   damageTextPrefab: {fileID: 8318689894986052360, guid: 700a0c79afe59754b9644a82131814a4, type: 3}
   healthTextOffset: {x: 0, y: 2.5, z: 0}
