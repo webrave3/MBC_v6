@@ -1,5 +1,6 @@
 using UnityEngine;
-using AutoForge.Items;
+// --- USING DIRECTIVE CHANGED ---
+using AutoForge.Gameplay; // Changed from AutoForge.Items
 
 namespace AutoForge.Player
 {

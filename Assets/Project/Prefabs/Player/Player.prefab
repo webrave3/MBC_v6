@@ -2000,7 +2000,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AutoForge.Player.PlayerBuilder
   mainCamera: {fileID: 2269964681122631406}
-  previewMaterial: {fileID: 0}
+  transparentPreviewMaterial: {fileID: 0}
   groundLayer:
     serializedVersion: 2
     m_Bits: 1
@@ -2087,6 +2087,8 @@ MonoBehaviour:
   buildCategoriesTier1:
   - {fileID: 11400000, guid: ffd65b6b99ffceb4db5eb5434df87e9b, type: 2}
   - {fileID: 11400000, guid: 731d0b6a129f186459543ead2c94d3bc, type: 2}
+  - {fileID: 11400000, guid: 93cb3a2fbf0e5c140844848b7308b416, type: 2}
+  - {fileID: 11400000, guid: 953e7716f2d19b04ea59d8ff3c817a06, type: 2}
 --- !u!1 &6586177860892118180
 GameObject:
   m_ObjectHideFlags: 0

@@ -1,7 +1,8 @@
 using UnityEngine;
 using AutoForge.Core;
 
-namespace AutoForge.Items
+// --- NAMESPACE CHANGED ---
+namespace AutoForge.Gameplay
 {
     [RequireComponent(typeof(Rigidbody))]
     public class ResourcePickup : MonoBehaviour

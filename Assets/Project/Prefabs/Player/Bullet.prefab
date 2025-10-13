@@ -29,7 +29,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0.7071068, w: 0.7071068}
   m_LocalPosition: {x: 18.36185, y: 0, z: -12.45314}
-  m_LocalScale: {x: 0.041857395, y: 0.041857395, z: 0.041857395}
+  m_LocalScale: {x: 0.68826646, y: 0.68826646, z: 0.68826646}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 1581237697097912370}
@@ -95,8 +95,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fe0d9a89fa23c5d45a6448654327f773, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Bullet
-  speed: 80
-  damage: 15
+  speed: 100
+  baseDamage: 10
   knockbackForce: 1
 --- !u!1 &8321090075695799411
 GameObject:
@@ -126,8 +126,8 @@ Transform:
   m_GameObject: {fileID: 8321090075695799411}
   serializedVersion: 2
   m_LocalRotation: {x: 0.7071068, y: 0, z: 0, w: 0.7071068}
-  m_LocalPosition: {x: -0.00000011274, y: 1.8e-14, z: 0}
-  m_LocalScale: {x: 2.5132, y: 2.5132, z: 2.5132}
+  m_LocalPosition: {x: -0.000000007603, y: 7e-15, z: 0}
+  m_LocalScale: {x: 0.16949114, y: 0.16949114, z: 0.16949114}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 7856288540307260618}
@@ -236,7 +236,7 @@ TrailRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
-  m_Time: 0.2
+  m_Time: 0.025
   m_PreviewTimeScale: 1
   m_Parameters:
     serializedVersion: 3

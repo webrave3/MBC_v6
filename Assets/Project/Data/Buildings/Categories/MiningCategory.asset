@@ -1,0 +1,18 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f6af6acf70a791848aca04a5833beb87, type: 3}
+  m_Name: MiningCategory
+  m_EditorClassIdentifier: Assembly-CSharp::AutoForge.Core.BuildCategory
+  categoryName: Mining
+  buildingsInCategory:
+  - {fileID: 11400000, guid: 7fef4af7b90e53546ad90ec8c364b06e, type: 2}
+  - {fileID: 11400000, guid: e0b548be7c4c41841952f214e106e3c2, type: 2}

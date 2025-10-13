@@ -27,7 +27,7 @@ namespace AutoForge.Core // Assuming this is the correct namespace from your fil
             rb.linearVelocity = transform.forward * speed;
 
             // Destroy after a set lifetime regardless of collision
-            Destroy(gameObject, 3.5f);
+            Destroy(gameObject, 3.0f);
         }
 
         void OnCollisionEnter(Collision collision)
@@ -58,7 +58,7 @@ namespace AutoForge.Core // Assuming this is the correct namespace from your fil
                 meshRenderer.enabled = false;
 
             // Destroy the (now invisible) bullet object after a short delay
-            Destroy(gameObject, 0.5f);
+            Destroy(gameObject, 0.25f);
         }
     }
 }

@@ -113,7 +113,7 @@ namespace AutoForge.Enemies
                 GameObject pickupObject = Instantiate(resourcePickupPrefab, transform.position + Vector3.up * 0.5f, Quaternion.identity);
 
                 // Configure the pickup with the correct resource type and amount
-                if (pickupObject.TryGetComponent<Items.ResourcePickup>(out var resourcePickup))
+                if (pickupObject.TryGetComponent<Gameplay.ResourcePickup>(out var resourcePickup))
                 {
                     resourcePickup.resourceType = lootDropType;
                     resourcePickup.amount = lootAmount;
