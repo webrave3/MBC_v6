@@ -2000,18 +2000,20 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AutoForge.Player.PlayerBuilder
   mainCamera: {fileID: 2269964681122631406}
-  transparentPreviewMaterial: {fileID: 0}
+  previewValidMaterial: {fileID: 2100000, guid: c831c12ec959c764bb8dce78b5241026, type: 2}
+  previewInvalidMaterial: {fileID: 2100000, guid: 0a182a2a543491d4da6ddeda7a0fcbfb, type: 2}
   groundLayer:
     serializedVersion: 2
     m_Bits: 1
-  socketLayer:
-    serializedVersion: 2
-    m_Bits: 128
   factoryFloorLayer:
     serializedVersion: 2
     m_Bits: 512
   maxBuildDistance: 50
-  placementYOffset: 1
+  tileSize: 2
+  socketSelectionRadius: 150
+  obstructionLayers:
+    serializedVersion: 2
+    m_Bits: 321
 --- !u!114 &7143359290261781911
 MonoBehaviour:
   m_ObjectHideFlags: 0
