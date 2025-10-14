@@ -1,6 +1,7 @@
 using UnityEngine;
+#if ENABLE_INPUT_SYSTEM
 using UnityEngine.InputSystem;
-using AutoForge.Core;
+#endif
 
 namespace StarterAssets
 {
@@ -11,6 +12,7 @@ namespace StarterAssets
         public Vector2 look;
         public bool jump;
         public bool sprint;
+        public bool dash; // ADD THIS LINE
 
         [Header("Movement Settings")]
         public bool analogMovement;
@@ -19,6 +21,7 @@ namespace StarterAssets
         public bool cursorLocked = true;
         public bool cursorInputForLook = true;
 
+#if ENABLE_INPUT_SYSTEM
         public void OnMove(InputValue value)
         {
             MoveInput(value.Get<Vector2>());
@@ -42,13 +45,13 @@ namespace StarterAssets
             SprintInput(value.isPressed);
         }
 
-        private void Update()
+        // ADD THIS ENTIRE FUNCTION
+        public void OnDash(InputValue value)
         {
-            if (GameManager.Instance != null)
-            {
-                cursorInputForLook = !GameManager.Instance.IsPlayerInUIMode;
-            }
+            DashInput(value.isPressed);
         }
+#endif
+
 
         public void MoveInput(Vector2 newMoveDirection)
         {
@@ -69,5 +72,22 @@ namespace StarterAssets
         {
             sprint = newSprintState;
         }
+
+        // ADD THIS ENTIRE FUNCTION
+        public void DashInput(bool newDashState)
+        {
+            dash = newDashState;
+        }
+
+        private void OnApplicationFocus(bool hasFocus)
+        {
+            SetCursorState(cursorLocked);
+        }
+
+        private void SetCursorState(bool newState)
+        {
+            Cursor.lockState = newState ? CursorLockMode.Locked : CursorLockMode.None;
+        }
     }
+
 }

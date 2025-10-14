@@ -12,6 +12,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 70c67a3882664dd44a9434e951b6b2b6, type: 3}
   m_Name: EnemyData_Grunt
   m_EditorClassIdentifier: Assembly-CSharp::AutoForge.Enemies.EnemyData
-  maxHealth: 150
-  moveSpeed: 2
+  maxHealth: 50
+  moveSpeed: 1
   enemyName: Grunt

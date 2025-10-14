@@ -1,24 +1,29 @@
 using UnityEngine;
-using System; // Required for Actions
+using System;
+using System.Collections;
+using AutoForge.Factory;
 
 namespace AutoForge.Player
 {
     public class PlayerStats : MonoBehaviour
     {
-        // Singleton pattern to make stats easily accessible from anywhere
         public static PlayerStats Instance { get; private set; }
 
-        [Header("Base Stats")]
+        [Header("Offense Stats")]
         [SerializeField] private float baseDamage = 25f;
-
-        [Header("Live Modifiers")]
         private float damageBoost = 0f;
-
-        // Public property that other scripts can read from
         public float TotalDamage => baseDamage + damageBoost;
 
-        // Event that fires whenever stats change, so the UI can update
+        [Header("Defense Stats (Shields)")]
+        [SerializeField] private float maxShield = 100f;
+        [SerializeField] private float shieldRechargeRate = 20f; // Points per second
+        [SerializeField] private float shieldRechargeDelay = 3.0f; // Seconds after taking damage before recharge starts
+        public float CurrentShield { get; private set; }
+        private Coroutine _rechargeCoroutine;
+
+        // Events for UI
         public static event Action<PlayerStats> OnStatsChanged;
+        public static event Action<float, float> OnShieldChanged;
 
         private void Awake()
         {
@@ -30,13 +35,65 @@ namespace AutoForge.Player
             {
                 Instance = this;
             }
+            CurrentShield = maxShield;
+        }
+
+        private void Start()
+        {
+            // Announce initial shield state for UI
+            OnShieldChanged?.Invoke(CurrentShield, maxShield);
+        }
+
+        public void TakeDamage(float amount)
+        {
+            // Stop any ongoing shield recharge
+            if (_rechargeCoroutine != null)
+            {
+                StopCoroutine(_rechargeCoroutine);
+                _rechargeCoroutine = null;
+            }
+
+            float damageToCore = 0;
+            if (amount > CurrentShield)
+            {
+                damageToCore = amount - CurrentShield;
+                CurrentShield = 0;
+            }
+            else
+            {
+                CurrentShield -= amount;
+            }
+
+            OnShieldChanged?.Invoke(CurrentShield, maxShield);
+
+            // If shields broke, pass remaining damage to the Power Core
+            if (damageToCore > 0 && PowerCore.Instance != null)
+            {
+                PowerCore.Instance.TakeDamage(damageToCore);
+            }
+
+            // Start the recharge timer
+            _rechargeCoroutine = StartCoroutine(RechargeShield());
+        }
+
+        private IEnumerator RechargeShield()
+        {
+            yield return new WaitForSeconds(shieldRechargeDelay);
+
+            while (CurrentShield < maxShield)
+            {
+                CurrentShield += shieldRechargeRate * Time.deltaTime;
+                CurrentShield = Mathf.Min(CurrentShield, maxShield); // Don't overcharge
+                OnShieldChanged?.Invoke(CurrentShield, maxShield);
+                yield return null; // Wait for the next frame
+            }
         }
 
         public void AddDamageBoost(float amount)
         {
             damageBoost += amount;
-            // Announce that stats have changed
             OnStatsChanged?.Invoke(this);
         }
     }
 }
+

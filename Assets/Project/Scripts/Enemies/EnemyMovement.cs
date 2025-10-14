@@ -1,72 +1,89 @@
 using UnityEngine;
 using UnityEngine.AI;
-using AutoForge.Enemies;
+using AutoForge.Player;
+using AutoForge.Factory;
 
-// Now requires a Rigidbody as well
-[RequireComponent(typeof(NavMeshAgent))]
-[RequireComponent(typeof(Enemy))]
-[RequireComponent(typeof(Rigidbody))]
-public class EnemyMovement : MonoBehaviour
+namespace AutoForge.Enemies
 {
-    private Transform playerTarget;
-    private NavMeshAgent agent;
-    private Enemy enemy;
-    private Rigidbody rb; // Reference to the Rigidbody
-
-    void Start()
+    [RequireComponent(typeof(NavMeshAgent))]
+    public class EnemyMovement : MonoBehaviour
     {
-        agent = GetComponent<NavMeshAgent>();
-        enemy = GetComponent<Enemy>();
-        rb = GetComponent<Rigidbody>(); // Get the Rigidbody component
+        [Header("AI Settings")]
+        [Tooltip("The chance (0-100) that this enemy will target the Power Core instead of the Player.")]
+        [Range(0, 100)] public int coreTargetingChance = 75;
+        [Tooltip("How often the enemy re-evaluates its target (in seconds).")]
+        [SerializeField] private float targetUpdateRate = 1.0f;
+        [Tooltip("How close the player must be to be considered a potential target.")]
+        [SerializeField] private float playerDetectionRadius = 20f;
 
-        // --- CRUCIAL STEP ---
-        // Tell the NavMeshAgent that it will NOT control the object's position directly.
-        // It will only be used for path calculations.
-        agent.updatePosition = false;
-        agent.updateRotation = false;
+        [Header("Movement")]
+        [SerializeField] private float moveSpeed = 3.5f;
 
-        if (enemy.enemyData != null)
+        private NavMeshAgent agent;
+        private EnemyAttack _enemyAttack; // Reference to the attack script
+        public Transform target { get; private set; }
+
+        private void Awake()
         {
-            agent.speed = enemy.enemyData.moveSpeed;
+            agent = GetComponent<NavMeshAgent>();
+            _enemyAttack = GetComponent<EnemyAttack>(); // Get the attack script
+            agent.speed = moveSpeed;
+
+            // --- IMPORTANT ---
+            // Set the agent's stopping distance based on the attack range
+            if (_enemyAttack != null)
+            {
+                agent.stoppingDistance = _enemyAttack.attackRange;
+            }
         }
 
-        GameObject playerObject = GameObject.FindGameObjectWithTag("Player");
-        if (playerObject != null)
+        private void Start()
         {
-            playerTarget = playerObject.transform;
-        }
-    }
-
-    void Update()
-    {
-        if (playerTarget != null)
-        {
-            // Tell the agent where we want to go
-            agent.SetDestination(playerTarget.position);
+            StartCoroutine(UpdateTargetCoroutine());
         }
 
-        // We manually move the Rigidbody based on the agent's calculated path
-        MoveEnemy();
-    }
-
-    private void MoveEnemy()
-    {
-        // Get the direction the agent wants to go in
-        Vector3 desiredVelocity = agent.desiredVelocity;
-
-        // Apply that direction to our Rigidbody's velocity
-        // We set the Y velocity to our current Y velocity to not interfere with gravity
-        rb.linearVelocity = new Vector3(desiredVelocity.x, rb.linearVelocity.y, desiredVelocity.z);
-
-        // Make the enemy look in the direction it's moving
-        if (desiredVelocity.sqrMagnitude > 0.1f) // Only rotate if we are actually moving
+        private System.Collections.IEnumerator UpdateTargetCoroutine()
         {
-            transform.rotation = Quaternion.LookRotation(desiredVelocity);
+            while (true)
+            {
+                DecideTarget();
+                yield return new WaitForSeconds(targetUpdateRate);
+            }
         }
 
-        // This is important: we need to manually sync the agent's position with our Rigidbody's
-        // so its path calculations don't fall behind.
-        agent.nextPosition = rb.position;
+        private void DecideTarget()
+        {
+            Transform playerTarget = null;
+            Transform coreTarget = PowerCore.Instance?.transform;
+
+            // Check if player is within detection radius
+            if (PlayerStats.Instance != null)
+            {
+                float distanceToPlayer = Vector3.Distance(transform.position, PlayerStats.Instance.transform.position);
+                if (distanceToPlayer <= playerDetectionRadius)
+                {
+                    playerTarget = PlayerStats.Instance.transform;
+                }
+            }
+
+            if (playerTarget == null && coreTarget == null) target = null;
+            else if (playerTarget != null && coreTarget == null) target = playerTarget;
+            else if (playerTarget == null && coreTarget != null) target = coreTarget;
+            else
+            {
+                int roll = Random.Range(0, 100);
+                target = (roll < coreTargetingChance) ? coreTarget : playerTarget;
+            }
+        }
+
+        private void Update()
+        {
+            if (target != null && agent.isActiveAndEnabled)
+            {
+                // Constantly update the destination for a moving target
+                agent.SetDestination(target.position);
+            }
+        }
     }
 }
 

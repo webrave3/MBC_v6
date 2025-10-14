@@ -1815,9 +1815,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   MoveSpeed: 8
-  SprintSpeed: 16
+  SprintSpeed: 12
   RotationSmoothTime: 0.12
-  SpeedChangeRate: 10
+  SpeedChangeRate: 50
   LandingAudioClip: {fileID: 8300000, guid: ff697d3070687ce4583faa0561a145a2, type: 3}
   FootstepAudioClips:
   - {fileID: 8300000, guid: 72f526a6a9890f643a88e85a61c86c8a, type: 3}
@@ -1831,8 +1831,8 @@ MonoBehaviour:
   - {fileID: 8300000, guid: 274649b0e221539409070ebf6c18918b, type: 3}
   - {fileID: 8300000, guid: a3194b8bbc96ef84fab1f98f4b7dae3e, type: 3}
   FootstepAudioVolume: 0.123
-  JumpHeight: 4
-  Gravity: -20
+  JumpHeight: 8
+  Gravity: -30
   JumpTimeout: 0.3
   FallTimeout: 0.15
   Grounded: 1

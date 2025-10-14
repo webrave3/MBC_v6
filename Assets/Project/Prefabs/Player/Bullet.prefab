@@ -98,6 +98,7 @@ MonoBehaviour:
   speed: 100
   baseDamage: 10
   knockbackForce: 1
+  hitEffectPrefab: {fileID: 4085903031936891527, guid: 4851884b771ba924aae473f1cb3e82f1, type: 3}
 --- !u!1 &8321090075695799411
 GameObject:
   m_ObjectHideFlags: 0
