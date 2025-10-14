@@ -16,14 +16,15 @@ namespace AutoForge.Player
         [SerializeField] private Material previewInvalidMaterial;
 
         [Header("Placement Settings")]
-        [SerializeField] private LayerMask groundLayer;
         [SerializeField] private LayerMask factoryFloorLayer;
+        [Tooltip("The layers that buildings can be placed on. IMPORTANT: This should include your FactoryFloorLayer AND the layer your placed buildings are on.")]
+        [SerializeField] private LayerMask buildingPlacementLayers;
         [SerializeField] private float maxBuildDistance = 100f;
         [SerializeField] private float tileSize = 2f;
         [SerializeField] private LayerMask obstructionLayers;
 
         [Header("Tuning & Debugging")]
-        [Tooltip("When true, enables obstruction and support checks. Turn this off to make placement less strict.")]
+        [Tooltip("When true, enables obstruction checks. When false, stacking and surface checks still apply.")]
         public bool placementRulesEnabled = true;
         [Tooltip("How directly you must look at a socket to select it (lower is more forgiving).")]
         [SerializeField][Range(0.7f, 0.99f)] private float socketSelectionAngle = 0.9f;
@@ -119,17 +120,15 @@ namespace AutoForge.Player
 
         private void PlaceBuilding()
         {
-            if (!canPlace) return;
+            if (!canPlace || currentBuildingData == null) return;
             if (ResourceManager.Instance.HasResource(currentBuildingData.costType, currentBuildingData.costAmount))
             {
                 ResourceManager.Instance.SpendResource(currentBuildingData.costType, currentBuildingData.costAmount);
                 if (isPlacingFactoryTile)
                 {
                     if (lastHitSocket == null || FactoryManager.Instance?.MobileFactory == null) return;
-                    GameObject newTile = Instantiate(currentBuildingData.buildingPrefab, Vector3.zero, Quaternion.identity);
-                    newTile.transform.SetParent(FactoryManager.Instance.MobileFactory.transform, false);
-                    newTile.transform.position = buildPreview.transform.position;
-                    newTile.transform.rotation = buildPreview.transform.rotation;
+                    GameObject newTile = Instantiate(currentBuildingData.buildingPrefab, buildPreview.transform.position, buildPreview.transform.rotation);
+                    newTile.transform.SetParent(FactoryManager.Instance.MobileFactory.transform, true);
                     lastHitSocket.gameObject.SetActive(false);
                     FactoryManager.Instance.MobileFactory.GetComponent<FactoryNavMeshUpdater>().UpdateNavMesh();
                 }
@@ -156,91 +155,11 @@ namespace AutoForge.Player
 
             if (isPlacingFactoryTile)
             {
-                Transform bestSocket = FindBestSocket();
-                if (bestSocket != null)
-                {
-                    Transform parentPart = bestSocket.parent;
-                    if (parentPart != null)
-                    {
-                        Vector3 direction = (bestSocket.position - parentPart.position).normalized;
-                        Vector3 targetPosition = parentPart.position + (direction * tileSize);
-
-                        // MODIFIED: Use the parent collider's top surface for Y position, plus the offset
-                        Collider parentCollider = parentPart.GetComponent<Collider>();
-                        float yOffset = currentBuildingData != null ? currentBuildingData.placementYOffset : 0f;
-                        if (parentCollider != null)
-                        {
-                            targetPosition.y = parentCollider.bounds.max.y + yOffset;
-                        }
-                        else
-                        {
-                            targetPosition.y = parentPart.position.y + yOffset;
-                        }
-
-                        buildPreview.transform.position = targetPosition;
-                        buildPreview.transform.rotation = parentPart.rotation;
-
-                        if (placementRulesEnabled)
-                        {
-                            if (!IsObstructed(targetPosition, parentPart.rotation, parentPart))
-                            {
-                                canPlace = true;
-                                lastHitSocket = bestSocket;
-                            }
-                        }
-                        else
-                        {
-                            canPlace = true;
-                            lastHitSocket = bestSocket;
-                        }
-                    }
-                }
-                else if (enableDebugLogging)
-                {
-                    debugStringBuilder.Append("[FAIL] No valid socket found in view cone. ");
-                }
+                HandleFactoryTilePlacement(centerRay);
             }
-            else // Placing normal buildings
+            else
             {
-                LayerMask combinedMask = groundLayer | factoryFloorLayer;
-                if (Physics.Raycast(centerRay, out RaycastHit hit, maxBuildDistance, combinedMask))
-                {
-                    Vector3 targetPosition;
-                    Quaternion targetRotation;
-                    float yOffset = currentBuildingData != null ? currentBuildingData.placementYOffset : 0f; // MODIFIED: Get offset
-
-                    if (((1 << hit.collider.gameObject.layer) & factoryFloorLayer) != 0)
-                    {
-                        Transform hitTile = hit.collider.transform;
-                        targetPosition = hitTile.position;
-                        targetPosition.y = hit.collider.bounds.max.y + yOffset; // MODIFIED: Add offset
-                        targetRotation = hitTile.rotation * Quaternion.Euler(0, currentPreviewRotationY, 0);
-                    }
-                    else
-                    {
-                        targetPosition = hit.point + new Vector3(0, yOffset, 0); // MODIFIED: Add offset
-                        targetRotation = Quaternion.FromToRotation(Vector3.up, hit.normal) * Quaternion.Euler(0, currentPreviewRotationY, 0);
-                    }
-
-                    buildPreview.transform.position = targetPosition;
-                    buildPreview.transform.rotation = targetRotation;
-
-                    if (placementRulesEnabled)
-                    {
-                        if (!IsObstructed(targetPosition, targetRotation, null))
-                        {
-                            canPlace = true;
-                        }
-                    }
-                    else
-                    {
-                        canPlace = true;
-                    }
-                }
-                else if (enableDebugLogging)
-                {
-                    debugStringBuilder.Append("[FAIL] No valid build surface found. ");
-                }
+                HandleBuildingPlacement(centerRay);
             }
 
             if (enableDebugLogging && !canPlace && debugStringBuilder.Length > 0)
@@ -249,6 +168,88 @@ namespace AutoForge.Player
             }
 
             SetPreviewMaterial();
+        }
+
+        private void HandleFactoryTilePlacement(Ray centerRay)
+        {
+            Transform bestSocket = FindBestSocket();
+            if (bestSocket != null)
+            {
+                Transform parentPart = bestSocket.parent;
+                if (parentPart != null)
+                {
+                    Vector3 direction = (bestSocket.position - parentPart.position).normalized;
+                    Vector3 targetPosition = parentPart.position + (direction * tileSize);
+
+                    if (FactoryManager.Instance?.MobileFactory != null)
+                    {
+                        targetPosition.y = FactoryManager.Instance.MobileFactory.transform.position.y;
+                    }
+
+                    buildPreview.transform.position = targetPosition;
+                    buildPreview.transform.rotation = parentPart.rotation;
+
+                    canPlace = placementRulesEnabled ? !IsObstructed(targetPosition, parentPart.rotation, parentPart) : true;
+
+                    if (canPlace)
+                    {
+                        lastHitSocket = bestSocket;
+                    }
+                }
+            }
+            else if (enableDebugLogging)
+            {
+                debugStringBuilder.Append("[FAIL] No valid socket found in view cone. ");
+            }
+        }
+
+        // MODIFIED: This method is rewritten to correctly handle stacking when placement rules are disabled.
+        private void HandleBuildingPlacement(Ray centerRay)
+        {
+            // Raycast against all valid building surfaces (floor AND other buildings).
+            if (Physics.Raycast(centerRay, out RaycastHit hit, maxBuildDistance, buildingPlacementLayers))
+            {
+                canPlace = false; // Default to invalid.
+
+                Building existingBuilding = hit.collider.GetComponentInParent<Building>();
+
+                // CASE 1: STACKING. This is the highest priority check.
+                if (existingBuilding != null && currentBuildingData.canStack && existingBuilding.data.buildingName == currentBuildingData.buildingName)
+                {
+                    Vector3 targetPosition = existingBuilding.transform.position + new Vector3(0, currentBuildingData.stackHeight, 0);
+                    Quaternion targetRotation = existingBuilding.transform.rotation;
+                    buildPreview.transform.position = targetPosition;
+                    buildPreview.transform.rotation = targetRotation;
+
+                    // Stacking is allowed, but we check for obstructions if rules are on.
+                    canPlace = placementRulesEnabled ? !IsObstructed(targetPosition, targetRotation, existingBuilding.transform) : true;
+                }
+                // CASE 2: PLACING ON EMPTY TILE. Only runs if we are not stacking.
+                else if (existingBuilding == null)
+                {
+                    Transform hitTile = hit.collider.transform;
+                    Vector3 targetPosition = hitTile.position;
+                    targetPosition.y = hit.collider.bounds.max.y + currentBuildingData.placementYOffset;
+                    Quaternion targetRotation = hitTile.rotation * Quaternion.Euler(0, currentPreviewRotationY, 0);
+                    buildPreview.transform.position = targetPosition;
+                    buildPreview.transform.rotation = targetRotation;
+
+                    // Standard placement is allowed, but check for obstructions if rules are on.
+                    canPlace = placementRulesEnabled ? !IsObstructed(targetPosition, targetRotation, null) : true;
+                }
+                // CASE 3: INVALID PLACEMENT. We hit a building but couldn't stack.
+                else
+                {
+                    buildPreview.transform.position = hit.point;
+                    canPlace = false;
+                    if (enableDebugLogging) debugStringBuilder.Append("[FAIL] Target is occupied by a non-stackable or different building.");
+                }
+            }
+            else
+            {
+                canPlace = false;
+                if (enableDebugLogging) debugStringBuilder.Append("[FAIL] No valid build surface found.");
+            }
         }
 
         private bool IsObstructed(Vector3 targetPosition, Quaternion targetRotation, Transform ignorePart)
@@ -269,7 +270,7 @@ namespace AutoForge.Player
             {
                 for (int i = 0; i < overlapCount; i++)
                 {
-                    if (overlapCheckResults[i].transform != ignorePart)
+                    if (overlapCheckResults[i].transform != ignorePart && (ignorePart == null || !overlapCheckResults[i].transform.IsChildOf(ignorePart)))
                     {
                         if (enableDebugLogging) debugStringBuilder.Append($"[FAIL] Obstructed by other factory part: '{overlapCheckResults[i].name}'. ");
                         return true;

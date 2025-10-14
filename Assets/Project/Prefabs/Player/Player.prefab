@@ -2002,10 +2002,10 @@ MonoBehaviour:
   mainCamera: {fileID: 2269964681122631406}
   previewValidMaterial: {fileID: 2100000, guid: c831c12ec959c764bb8dce78b5241026, type: 2}
   previewInvalidMaterial: {fileID: 2100000, guid: 0a182a2a543491d4da6ddeda7a0fcbfb, type: 2}
-  groundLayer:
-    serializedVersion: 2
-    m_Bits: 1
   factoryFloorLayer:
+    serializedVersion: 2
+    m_Bits: 512
+  buildingPlacementLayers:
     serializedVersion: 2
     m_Bits: 512
   maxBuildDistance: 50
@@ -2013,8 +2013,8 @@ MonoBehaviour:
   obstructionLayers:
     serializedVersion: 2
     m_Bits: 321
-  placementRulesEnabled: 1
-  socketSelectionAngle: 0.85
+  placementRulesEnabled: 0
+  socketSelectionAngle: 0.7
   enableDebugLogging: 1
 --- !u!114 &7143359290261781911
 MonoBehaviour:

@@ -16,5 +16,8 @@ MonoBehaviour:
   buildingPrefab: {fileID: 2227903657901830962, guid: 043bb5f4df132b34bb4fa4f9c462ec2f, type: 3}
   buildingIcon: {fileID: 0}
   costType: {fileID: 11400000, guid: 233afb50ab6c485409801808b58c4247, type: 2}
-  costAmount: 51
+  costAmount: 2
+  placementYOffset: 0
+  canStack: 0
+  stackHeight: 2
   damageBonus: 78
