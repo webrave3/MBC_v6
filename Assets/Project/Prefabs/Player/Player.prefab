@@ -2014,6 +2014,8 @@ MonoBehaviour:
   obstructionLayers:
     serializedVersion: 2
     m_Bits: 321
+  requireStructuralSupport: 0
+  requiredNeighborCount: 1
 --- !u!114 &7143359290261781911
 MonoBehaviour:
   m_ObjectHideFlags: 0

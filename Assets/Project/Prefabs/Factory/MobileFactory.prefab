@@ -232,8 +232,24 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 4051317187013325960}
     m_Modifications:
+    - target: {fileID: 2987512737378759469, guid: 54301c926a8afb74590aac87245f9d40, type: 3}
+      propertyPath: m_TagString
+      value: Untagged
+      objectReference: {fileID: 0}
+    - target: {fileID: 3436273019427253504, guid: 54301c926a8afb74590aac87245f9d40, type: 3}
+      propertyPath: m_TagString
+      value: Untagged
+      objectReference: {fileID: 0}
+    - target: {fileID: 4827663335072896012, guid: 54301c926a8afb74590aac87245f9d40, type: 3}
+      propertyPath: m_TagString
+      value: Untagged
+      objectReference: {fileID: 0}
     - target: {fileID: 7526866273554402727, guid: 54301c926a8afb74590aac87245f9d40, type: 3}
       propertyPath: m_Name
+      value: Chassis
+      objectReference: {fileID: 0}
+    - target: {fileID: 7526866273554402727, guid: 54301c926a8afb74590aac87245f9d40, type: 3}
+      propertyPath: m_TagString
       value: Chassis
       objectReference: {fileID: 0}
     - target: {fileID: 8074346366786658967, guid: 54301c926a8afb74590aac87245f9d40, type: 3}

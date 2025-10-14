@@ -13,6 +13,7 @@ namespace AutoForge.Player
         [SerializeField] private Camera mainCamera;
         [SerializeField] private Material previewValidMaterial;
         [SerializeField] private Material previewInvalidMaterial;
+        [SerializeField] private GameObject debugSpherePrefab;
 
         [Header("Placement Settings")]
         [SerializeField] private LayerMask groundLayer;
@@ -20,19 +21,20 @@ namespace AutoForge.Player
         [SerializeField] private float maxBuildDistance = 100f;
         [SerializeField] private float tileSize = 2f;
         [SerializeField] private float socketSelectionRadius = 150f;
-        [Tooltip("Layers that will block tile placement (e.g., Default, Player, Enemies). DO NOT include FactoryFloor.")]
         [SerializeField] private LayerMask obstructionLayers;
 
         private GameObject buildPreview;
         private BuildingData currentBuildingData;
         private Renderer[] previewRenderers;
+        private GameObject debugSphereInstance;
         private bool isBuildMode = false;
         public bool IsInBuildMode => isBuildMode;
 
         private bool isPlacingFactoryTile = false;
         private bool canPlace = false;
         private Transform lastHitSocket;
-        private Collider[] overlapCheckResults = new Collider[5]; // Pre-allocate for performance
+        private Collider[] overlapCheckResults = new Collider[10];
+        private float currentPreviewRotationY = 0f;
 
         private void Awake()
         {
@@ -56,6 +58,14 @@ namespace AutoForge.Player
             }
         }
 
+        public void OnRotate(InputValue value)
+        {
+            if (!isBuildMode || isPlacingFactoryTile) return;
+            float scrollValue = value.Get<Vector2>().y;
+            if (scrollValue > 0) currentPreviewRotationY += 90f;
+            else if (scrollValue < 0) currentPreviewRotationY -= 90f;
+        }
+
         private void Update()
         {
             if (isBuildMode && buildPreview != null)
@@ -72,6 +82,7 @@ namespace AutoForge.Player
             currentBuildingData = data;
             if (buildPreview != null) Destroy(buildPreview);
 
+            currentPreviewRotationY = 0f;
             buildPreview = Instantiate(currentBuildingData.buildingPrefab);
             isPlacingFactoryTile = buildPreview.GetComponent<FactoryTile>() != null;
 
@@ -88,11 +99,19 @@ namespace AutoForge.Player
             {
                 buildingScript.enabled = false;
             }
+
+            if (debugSpherePrefab != null && debugSphereInstance == null)
+            {
+                debugSphereInstance = Instantiate(debugSpherePrefab);
+                // CRITICAL FIX: Make the debug sphere ignore raycasts!
+                SetLayerRecursively(debugSphereInstance, LayerMask.NameToLayer("Ignore Raycast"));
+            }
         }
 
         public void CancelBuildMode()
         {
             if (buildPreview != null) Destroy(buildPreview);
+            if (debugSphereInstance != null) Destroy(debugSphereInstance);
             isBuildMode = false;
             currentBuildingData = null;
             isPlacingFactoryTile = false;
@@ -117,79 +136,130 @@ namespace AutoForge.Player
                 }
                 else
                 {
-                    Instantiate(currentBuildingData.buildingPrefab, buildPreview.transform.position, buildPreview.transform.rotation);
+                    GameObject newBuilding = Instantiate(currentBuildingData.buildingPrefab, buildPreview.transform.position, buildPreview.transform.rotation);
+                    Ray ray = mainCamera.ViewportPointToRay(new Vector3(0.5f, 0.5f, 0));
+                    if (Physics.Raycast(ray, out RaycastHit hit, maxBuildDistance, factoryFloorLayer))
+                    {
+                        newBuilding.transform.SetParent(FactoryManager.Instance.MobileFactory.transform, true);
+                    }
                 }
             }
         }
 
         private void MoveAndAlignPreview()
         {
-            if (mainCamera == null) return;
-
             canPlace = false;
             lastHitSocket = null;
             Ray centerRay = mainCamera.ViewportPointToRay(new Vector3(0.5f, 0.5f, 0));
-            buildPreview.transform.position = centerRay.GetPoint(10f); // Default floating position
-            buildPreview.transform.rotation = Quaternion.identity;
+            buildPreview.transform.position = centerRay.GetPoint(10f);
+            buildPreview.transform.rotation = Quaternion.Euler(0, currentPreviewRotationY, 0);
+
+            // --- VISUAL DEBUGGER ---
+            if (debugSphereInstance != null)
+            {
+                if (Physics.Raycast(centerRay, out RaycastHit generalHit, maxBuildDistance))
+                {
+                    debugSphereInstance.SetActive(true);
+                    debugSphereInstance.transform.position = generalHit.point;
+                }
+                else
+                {
+                    debugSphereInstance.SetActive(false);
+                }
+            }
 
             if (isPlacingFactoryTile)
             {
                 Transform bestSocket = FindBestSocket();
-
                 if (bestSocket != null)
                 {
-                    Transform parentTile = bestSocket.parent;
-                    if (parentTile != null)
+                    Transform parentPart = bestSocket.parent;
+                    if (parentPart != null)
                     {
-                        // --- PERFECT ALIGNMENT LOGIC ---
-                        Vector3 direction = (bestSocket.position - parentTile.position).normalized;
-                        Vector3 targetPosition = parentTile.position + (direction * tileSize);
-
-                        // Explicitly lock the height to the parent tile's height
-                        targetPosition.y = parentTile.position.y;
-
+                        Vector3 direction = (bestSocket.position - parentPart.position).normalized;
+                        Vector3 targetPosition = parentPart.position + (direction * tileSize);
+                        targetPosition.y = parentPart.position.y;
                         buildPreview.transform.position = targetPosition;
-                        buildPreview.transform.rotation = parentTile.rotation;
-                        // --- END ALIGNMENT LOGIC ---
+                        buildPreview.transform.rotation = parentPart.rotation;
 
-                        // --- REFINED OBSTRUCTION CHECK ---
-                        // Use a box slightly smaller than the tile to avoid hitting the adjacent parent tile.
-                        Vector3 boxHalfExtents = new Vector3(tileSize / 2f, 0.1f, tileSize / 2f) * 0.95f;
-
-                        // Use OverlapBoxNonAlloc which is more performant and tells us what we hit.
-                        int overlapCount = Physics.OverlapBoxNonAlloc(targetPosition, boxHalfExtents, overlapCheckResults, parentTile.rotation, obstructionLayers, QueryTriggerInteraction.Ignore);
-
-                        if (overlapCount == 0)
+                        if (!IsObstructed(targetPosition, parentPart.rotation, parentPart))
                         {
-                            // If we didn't hit anything on an obstruction layer, placement is valid.
                             canPlace = true;
                             lastHitSocket = bestSocket;
                         }
-                        else
-                        {
-                            // Optional: Log what we hit for debugging.
-                            // Debug.LogWarning($"Placement blocked by: {overlapCheckResults[0].name}");
-                        }
-                        // --- END OBSTRUCTION CHECK ---
                     }
                 }
             }
             else // Placing normal buildings
             {
                 LayerMask combinedMask = groundLayer | factoryFloorLayer;
-                if (Physics.Raycast(centerRay, out RaycastHit buildHit, maxBuildDistance, combinedMask))
+                if (Physics.Raycast(centerRay, out RaycastHit hit, maxBuildDistance, combinedMask))
                 {
-                    canPlace = true;
-                    buildPreview.transform.position = buildHit.point;
-                    buildPreview.transform.rotation = Quaternion.FromToRotation(Vector3.up, buildHit.normal);
+                    Vector3 targetPosition;
+                    Quaternion targetRotation;
+
+                    if (((1 << hit.collider.gameObject.layer) & factoryFloorLayer) != 0)
+                    {
+                        Transform hitTile = hit.collider.transform;
+                        targetPosition = hitTile.position;
+                        float tileTopY = hit.collider.bounds.max.y;
+                        float buildingHalfHeight = buildPreview.GetComponentInChildren<Renderer>().bounds.extents.y;
+                        targetPosition.y = tileTopY + buildingHalfHeight;
+                        targetRotation = hitTile.rotation * Quaternion.Euler(0, currentPreviewRotationY, 0);
+                    }
+                    else
+                    {
+                        targetPosition = hit.point;
+                        targetRotation = Quaternion.FromToRotation(Vector3.up, hit.normal) * Quaternion.Euler(0, currentPreviewRotationY, 0);
+                    }
+
+                    buildPreview.transform.position = targetPosition;
+                    buildPreview.transform.rotation = targetRotation;
+
+                    if (!IsObstructed(targetPosition, targetRotation, null))
+                    {
+                        canPlace = true;
+                    }
+                }
+            }
+            SetPreviewMaterial();
+        }
+
+        // --- THIS IS THE UPDATED OBSTRUCTION METHOD WITH DEBUGGING ---
+        private bool IsObstructed(Vector3 targetPosition, Quaternion targetRotation, Transform ignorePart)
+        {
+            Bounds previewBounds = buildPreview.GetComponentInChildren<Renderer>().bounds;
+            Vector3 boxHalfExtents = previewBounds.extents;
+
+            // Check for environmental/major obstructions
+            int overlapCount = Physics.OverlapBoxNonAlloc(targetPosition, boxHalfExtents, overlapCheckResults, targetRotation, obstructionLayers, QueryTriggerInteraction.Ignore);
+            if (overlapCount > 0)
+            {
+                Debug.LogWarning($"[OBSTRUCTION] Blocked by environmental object: '{overlapCheckResults[0].name}' on layer '{LayerMask.LayerToName(overlapCheckResults[0].gameObject.layer)}'");
+                return true;
+            }
+
+            // Check for other factory tiles
+            overlapCount = Physics.OverlapBoxNonAlloc(targetPosition, boxHalfExtents, overlapCheckResults, targetRotation, factoryFloorLayer, QueryTriggerInteraction.Ignore);
+            if (overlapCount > 0)
+            {
+                for (int i = 0; i < overlapCount; i++)
+                {
+                    // If the object we hit is NOT the part we are building from, it's a true obstruction.
+                    if (overlapCheckResults[i].transform != ignorePart)
+                    {
+                        Debug.LogWarning($"[OBSTRUCTION] Blocked by other factory part: '{overlapCheckResults[i].name}'. We were ignoring '{ignorePart?.name}'.");
+                        return true;
+                    }
                 }
             }
 
-            SetPreviewMaterial();
+            return false;
         }
 
         private Transform FindBestSocket()
         {
+            // ... (This method remains the same and is working)
             Transform bestSocket = null;
             float closestDistSqr = socketSelectionRadius * socketSelectionRadius;
             Vector2 screenCenter = new Vector2(Screen.width / 2, Screen.height / 2);
