@@ -2,7 +2,7 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 using AutoForge.Core;
 using System.Collections.Generic;
-using System.Text; // Required for the new debug logs
+using System.Text;
 
 namespace AutoForge.Player
 {
@@ -41,7 +41,7 @@ namespace AutoForge.Player
         private Transform lastHitSocket;
         private Collider[] overlapCheckResults = new Collider[10];
         private float currentPreviewRotationY = 0f;
-        private StringBuilder debugStringBuilder = new StringBuilder(); // For efficient logging
+        private StringBuilder debugStringBuilder = new StringBuilder();
 
         private void Awake()
         {
@@ -136,8 +136,7 @@ namespace AutoForge.Player
                 else
                 {
                     GameObject newBuilding = Instantiate(currentBuildingData.buildingPrefab, buildPreview.transform.position, buildPreview.transform.rotation);
-                    Ray ray = mainCamera.ViewportPointToRay(new Vector3(0.5f, 0.5f, 0));
-                    if (Physics.Raycast(ray, out RaycastHit hit, maxBuildDistance, factoryFloorLayer))
+                    if (FactoryManager.Instance?.MobileFactory != null)
                     {
                         newBuilding.transform.SetParent(FactoryManager.Instance.MobileFactory.transform, true);
                     }
@@ -147,12 +146,12 @@ namespace AutoForge.Player
 
         private void MoveAndAlignPreview()
         {
-            canPlace = false; // Assume we can't place until proven otherwise
+            canPlace = false;
             lastHitSocket = null;
-            debugStringBuilder.Clear(); // Clear the debug log for this frame
+            debugStringBuilder.Clear();
 
             Ray centerRay = mainCamera.ViewportPointToRay(new Vector3(0.5f, 0.5f, 0));
-            buildPreview.transform.position = centerRay.GetPoint(10f); // Default float position
+            buildPreview.transform.position = centerRay.GetPoint(10f);
             buildPreview.transform.rotation = Quaternion.Euler(0, currentPreviewRotationY, 0);
 
             if (isPlacingFactoryTile)
@@ -165,7 +164,18 @@ namespace AutoForge.Player
                     {
                         Vector3 direction = (bestSocket.position - parentPart.position).normalized;
                         Vector3 targetPosition = parentPart.position + (direction * tileSize);
-                        targetPosition.y = parentPart.position.y;
+
+                        // MODIFIED: Use the parent collider's top surface for Y position, plus the offset
+                        Collider parentCollider = parentPart.GetComponent<Collider>();
+                        float yOffset = currentBuildingData != null ? currentBuildingData.placementYOffset : 0f;
+                        if (parentCollider != null)
+                        {
+                            targetPosition.y = parentCollider.bounds.max.y + yOffset;
+                        }
+                        else
+                        {
+                            targetPosition.y = parentPart.position.y + yOffset;
+                        }
 
                         buildPreview.transform.position = targetPosition;
                         buildPreview.transform.rotation = parentPart.rotation;
@@ -178,7 +188,7 @@ namespace AutoForge.Player
                                 lastHitSocket = bestSocket;
                             }
                         }
-                        else // Rules are off, just allow it
+                        else
                         {
                             canPlace = true;
                             lastHitSocket = bestSocket;
@@ -197,21 +207,18 @@ namespace AutoForge.Player
                 {
                     Vector3 targetPosition;
                     Quaternion targetRotation;
+                    float yOffset = currentBuildingData != null ? currentBuildingData.placementYOffset : 0f; // MODIFIED: Get offset
 
                     if (((1 << hit.collider.gameObject.layer) & factoryFloorLayer) != 0)
                     {
-                        // --- NEW ROBUST "ON-TOP" PLACEMENT ---
                         Transform hitTile = hit.collider.transform;
-                        targetPosition = hitTile.position; // Snap X and Z to the center
-
-                        // Use the collider's highest point for perfect height placement
-                        targetPosition.y = hit.collider.bounds.max.y;
-
+                        targetPosition = hitTile.position;
+                        targetPosition.y = hit.collider.bounds.max.y + yOffset; // MODIFIED: Add offset
                         targetRotation = hitTile.rotation * Quaternion.Euler(0, currentPreviewRotationY, 0);
                     }
                     else
                     {
-                        targetPosition = hit.point;
+                        targetPosition = hit.point + new Vector3(0, yOffset, 0); // MODIFIED: Add offset
                         targetRotation = Quaternion.FromToRotation(Vector3.up, hit.normal) * Quaternion.Euler(0, currentPreviewRotationY, 0);
                     }
 
@@ -236,7 +243,6 @@ namespace AutoForge.Player
                 }
             }
 
-            // Log the reason for failure if debug is on and we can't place
             if (enableDebugLogging && !canPlace && debugStringBuilder.Length > 0)
             {
                 Debug.Log(debugStringBuilder.ToString());
@@ -248,7 +254,7 @@ namespace AutoForge.Player
         private bool IsObstructed(Vector3 targetPosition, Quaternion targetRotation, Transform ignorePart)
         {
             Collider previewCollider = buildPreview.GetComponentInChildren<Collider>();
-            if (previewCollider == null) return true; // Cannot check if there's no collider
+            if (previewCollider == null) return true;
             Vector3 boxHalfExtents = previewCollider.bounds.extents;
 
             int overlapCount = Physics.OverlapBoxNonAlloc(targetPosition, boxHalfExtents, overlapCheckResults, targetRotation, obstructionLayers, QueryTriggerInteraction.Ignore);
@@ -273,11 +279,10 @@ namespace AutoForge.Player
             return false;
         }
 
-        // --- THIS IS THE NEW, INTUITIVE SOCKET FINDING METHOD ---
         private Transform FindBestSocket()
         {
             Transform bestSocket = null;
-            float bestScore = -1f; // Use -1 to indicate no valid socket found yet
+            float bestScore = -1f;
 
             if (FactoryManager.Instance?.MobileFactory == null) return null;
 
@@ -294,14 +299,11 @@ namespace AutoForge.Player
                 float dot = Vector3.Dot(playerLookDir, toSocketDir);
 
                 float distSqr = (socket.transform.position - playerPos).sqrMagnitude;
-                if (distSqr > maxBuildDistance * maxBuildDistance) continue; // Skip if too far
+                if (distSqr > maxBuildDistance * maxBuildDistance) continue;
 
                 if (dot > socketSelectionAngle)
                 {
-                    // A simple score: how aligned it is, divided by distance.
-                    // This naturally prioritizes close objects you are looking directly at.
                     float score = dot / distSqr;
-
                     if (score > bestScore)
                     {
                         bestScore = score;

@@ -18,5 +18,8 @@ public class BuildingData : ScriptableObject
     [Header("Functionality (Optional)")]
     [Tooltip("Used by booster buildings. Set to 0 for non-boosters.")]
     public float damageBonus = 0f;
+    
+    [Tooltip("The vertical offset to apply when placing this building to align its base with the ground.")]
+    public float placementYOffset = 0f; // <-- ADD THIS LINE
 }
 
