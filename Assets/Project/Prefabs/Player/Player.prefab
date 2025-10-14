@@ -2010,12 +2010,12 @@ MonoBehaviour:
     m_Bits: 512
   maxBuildDistance: 50
   tileSize: 2
-  socketSelectionRadius: 150
   obstructionLayers:
     serializedVersion: 2
     m_Bits: 321
-  requireStructuralSupport: 0
-  requiredNeighborCount: 1
+  placementRulesEnabled: 1
+  socketSelectionAngle: 0.85
+  enableDebugLogging: 1
 --- !u!114 &7143359290261781911
 MonoBehaviour:
   m_ObjectHideFlags: 0

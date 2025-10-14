@@ -2,6 +2,7 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 using AutoForge.Core;
 using System.Collections.Generic;
+using System.Text; // Required for the new debug logs
 
 namespace AutoForge.Player
 {
@@ -13,20 +14,25 @@ namespace AutoForge.Player
         [SerializeField] private Camera mainCamera;
         [SerializeField] private Material previewValidMaterial;
         [SerializeField] private Material previewInvalidMaterial;
-        [SerializeField] private GameObject debugSpherePrefab;
 
         [Header("Placement Settings")]
         [SerializeField] private LayerMask groundLayer;
         [SerializeField] private LayerMask factoryFloorLayer;
         [SerializeField] private float maxBuildDistance = 100f;
         [SerializeField] private float tileSize = 2f;
-        [SerializeField] private float socketSelectionRadius = 150f;
         [SerializeField] private LayerMask obstructionLayers;
+
+        [Header("Tuning & Debugging")]
+        [Tooltip("When true, enables obstruction and support checks. Turn this off to make placement less strict.")]
+        public bool placementRulesEnabled = true;
+        [Tooltip("How directly you must look at a socket to select it (lower is more forgiving).")]
+        [SerializeField][Range(0.7f, 0.99f)] private float socketSelectionAngle = 0.9f;
+        [Tooltip("Enable to print a single log message explaining why placement is failing.")]
+        public bool enableDebugLogging = false;
 
         private GameObject buildPreview;
         private BuildingData currentBuildingData;
         private Renderer[] previewRenderers;
-        private GameObject debugSphereInstance;
         private bool isBuildMode = false;
         public bool IsInBuildMode => isBuildMode;
 
@@ -35,6 +41,7 @@ namespace AutoForge.Player
         private Transform lastHitSocket;
         private Collider[] overlapCheckResults = new Collider[10];
         private float currentPreviewRotationY = 0f;
+        private StringBuilder debugStringBuilder = new StringBuilder(); // For efficient logging
 
         private void Awake()
         {
@@ -99,19 +106,11 @@ namespace AutoForge.Player
             {
                 buildingScript.enabled = false;
             }
-
-            if (debugSpherePrefab != null && debugSphereInstance == null)
-            {
-                debugSphereInstance = Instantiate(debugSpherePrefab);
-                // CRITICAL FIX: Make the debug sphere ignore raycasts!
-                SetLayerRecursively(debugSphereInstance, LayerMask.NameToLayer("Ignore Raycast"));
-            }
         }
 
         public void CancelBuildMode()
         {
             if (buildPreview != null) Destroy(buildPreview);
-            if (debugSphereInstance != null) Destroy(debugSphereInstance);
             isBuildMode = false;
             currentBuildingData = null;
             isPlacingFactoryTile = false;
@@ -148,25 +147,13 @@ namespace AutoForge.Player
 
         private void MoveAndAlignPreview()
         {
-            canPlace = false;
+            canPlace = false; // Assume we can't place until proven otherwise
             lastHitSocket = null;
-            Ray centerRay = mainCamera.ViewportPointToRay(new Vector3(0.5f, 0.5f, 0));
-            buildPreview.transform.position = centerRay.GetPoint(10f);
-            buildPreview.transform.rotation = Quaternion.Euler(0, currentPreviewRotationY, 0);
+            debugStringBuilder.Clear(); // Clear the debug log for this frame
 
-            // --- VISUAL DEBUGGER ---
-            if (debugSphereInstance != null)
-            {
-                if (Physics.Raycast(centerRay, out RaycastHit generalHit, maxBuildDistance))
-                {
-                    debugSphereInstance.SetActive(true);
-                    debugSphereInstance.transform.position = generalHit.point;
-                }
-                else
-                {
-                    debugSphereInstance.SetActive(false);
-                }
-            }
+            Ray centerRay = mainCamera.ViewportPointToRay(new Vector3(0.5f, 0.5f, 0));
+            buildPreview.transform.position = centerRay.GetPoint(10f); // Default float position
+            buildPreview.transform.rotation = Quaternion.Euler(0, currentPreviewRotationY, 0);
 
             if (isPlacingFactoryTile)
             {
@@ -179,15 +166,28 @@ namespace AutoForge.Player
                         Vector3 direction = (bestSocket.position - parentPart.position).normalized;
                         Vector3 targetPosition = parentPart.position + (direction * tileSize);
                         targetPosition.y = parentPart.position.y;
+
                         buildPreview.transform.position = targetPosition;
                         buildPreview.transform.rotation = parentPart.rotation;
 
-                        if (!IsObstructed(targetPosition, parentPart.rotation, parentPart))
+                        if (placementRulesEnabled)
+                        {
+                            if (!IsObstructed(targetPosition, parentPart.rotation, parentPart))
+                            {
+                                canPlace = true;
+                                lastHitSocket = bestSocket;
+                            }
+                        }
+                        else // Rules are off, just allow it
                         {
                             canPlace = true;
                             lastHitSocket = bestSocket;
                         }
                     }
+                }
+                else if (enableDebugLogging)
+                {
+                    debugStringBuilder.Append("[FAIL] No valid socket found in view cone. ");
                 }
             }
             else // Placing normal buildings
@@ -200,11 +200,13 @@ namespace AutoForge.Player
 
                     if (((1 << hit.collider.gameObject.layer) & factoryFloorLayer) != 0)
                     {
+                        // --- NEW ROBUST "ON-TOP" PLACEMENT ---
                         Transform hitTile = hit.collider.transform;
-                        targetPosition = hitTile.position;
-                        float tileTopY = hit.collider.bounds.max.y;
-                        float buildingHalfHeight = buildPreview.GetComponentInChildren<Renderer>().bounds.extents.y;
-                        targetPosition.y = tileTopY + buildingHalfHeight;
+                        targetPosition = hitTile.position; // Snap X and Z to the center
+
+                        // Use the collider's highest point for perfect height placement
+                        targetPosition.y = hit.collider.bounds.max.y;
+
                         targetRotation = hitTile.rotation * Quaternion.Euler(0, currentPreviewRotationY, 0);
                     }
                     else
@@ -216,69 +218,94 @@ namespace AutoForge.Player
                     buildPreview.transform.position = targetPosition;
                     buildPreview.transform.rotation = targetRotation;
 
-                    if (!IsObstructed(targetPosition, targetRotation, null))
+                    if (placementRulesEnabled)
+                    {
+                        if (!IsObstructed(targetPosition, targetRotation, null))
+                        {
+                            canPlace = true;
+                        }
+                    }
+                    else
                     {
                         canPlace = true;
                     }
                 }
+                else if (enableDebugLogging)
+                {
+                    debugStringBuilder.Append("[FAIL] No valid build surface found. ");
+                }
             }
+
+            // Log the reason for failure if debug is on and we can't place
+            if (enableDebugLogging && !canPlace && debugStringBuilder.Length > 0)
+            {
+                Debug.Log(debugStringBuilder.ToString());
+            }
+
             SetPreviewMaterial();
         }
 
-        // --- THIS IS THE UPDATED OBSTRUCTION METHOD WITH DEBUGGING ---
         private bool IsObstructed(Vector3 targetPosition, Quaternion targetRotation, Transform ignorePart)
         {
-            Bounds previewBounds = buildPreview.GetComponentInChildren<Renderer>().bounds;
-            Vector3 boxHalfExtents = previewBounds.extents;
+            Collider previewCollider = buildPreview.GetComponentInChildren<Collider>();
+            if (previewCollider == null) return true; // Cannot check if there's no collider
+            Vector3 boxHalfExtents = previewCollider.bounds.extents;
 
-            // Check for environmental/major obstructions
             int overlapCount = Physics.OverlapBoxNonAlloc(targetPosition, boxHalfExtents, overlapCheckResults, targetRotation, obstructionLayers, QueryTriggerInteraction.Ignore);
             if (overlapCount > 0)
             {
-                Debug.LogWarning($"[OBSTRUCTION] Blocked by environmental object: '{overlapCheckResults[0].name}' on layer '{LayerMask.LayerToName(overlapCheckResults[0].gameObject.layer)}'");
+                if (enableDebugLogging) debugStringBuilder.Append($"[FAIL] Obstructed by '{overlapCheckResults[0].name}' on layer '{LayerMask.LayerToName(overlapCheckResults[0].gameObject.layer)}'. ");
                 return true;
             }
 
-            // Check for other factory tiles
             overlapCount = Physics.OverlapBoxNonAlloc(targetPosition, boxHalfExtents, overlapCheckResults, targetRotation, factoryFloorLayer, QueryTriggerInteraction.Ignore);
             if (overlapCount > 0)
             {
                 for (int i = 0; i < overlapCount; i++)
                 {
-                    // If the object we hit is NOT the part we are building from, it's a true obstruction.
                     if (overlapCheckResults[i].transform != ignorePart)
                     {
-                        Debug.LogWarning($"[OBSTRUCTION] Blocked by other factory part: '{overlapCheckResults[i].name}'. We were ignoring '{ignorePart?.name}'.");
+                        if (enableDebugLogging) debugStringBuilder.Append($"[FAIL] Obstructed by other factory part: '{overlapCheckResults[i].name}'. ");
                         return true;
                     }
                 }
             }
-
             return false;
         }
 
+        // --- THIS IS THE NEW, INTUITIVE SOCKET FINDING METHOD ---
         private Transform FindBestSocket()
         {
-            // ... (This method remains the same and is working)
             Transform bestSocket = null;
-            float closestDistSqr = socketSelectionRadius * socketSelectionRadius;
-            Vector2 screenCenter = new Vector2(Screen.width / 2, Screen.height / 2);
+            float bestScore = -1f; // Use -1 to indicate no valid socket found yet
 
-            if (FactoryManager.Instance?.MobileFactory != null)
+            if (FactoryManager.Instance?.MobileFactory == null) return null;
+
+            Vector3 playerPos = transform.position;
+            Vector3 playerLookDir = mainCamera.transform.forward;
+
+            var allSockets = FactoryManager.Instance.MobileFactory.GetComponentsInChildren<Socket>();
+
+            foreach (var socket in allSockets)
             {
-                var allSockets = FactoryManager.Instance.MobileFactory.GetComponentsInChildren<Socket>();
-                foreach (var socket in allSockets)
+                if (!socket.gameObject.activeInHierarchy) continue;
+
+                Vector3 toSocketDir = (socket.transform.position - playerPos).normalized;
+                float dot = Vector3.Dot(playerLookDir, toSocketDir);
+
+                float distSqr = (socket.transform.position - playerPos).sqrMagnitude;
+                if (distSqr > maxBuildDistance * maxBuildDistance) continue; // Skip if too far
+
+                if (dot > socketSelectionAngle)
                 {
-                    if (!socket.gameObject.activeInHierarchy) continue;
-                    Vector3 screenPoint = mainCamera.WorldToScreenPoint(socket.transform.position);
-                    if (screenPoint.z > 0)
+                    // A simple score: how aligned it is, divided by distance.
+                    // This naturally prioritizes close objects you are looking directly at.
+                    float score = dot / distSqr;
+
+                    if (score > bestScore)
                     {
-                        float distSqr = (new Vector2(screenPoint.x, screenPoint.y) - screenCenter).sqrMagnitude;
-                        if (distSqr < closestDistSqr)
-                        {
-                            closestDistSqr = distSqr;
-                            bestSocket = socket.transform;
-                        }
+                        bestScore = score;
+                        bestSocket = socket.transform;
                     }
                 }
             }
