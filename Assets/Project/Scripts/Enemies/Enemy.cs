@@ -5,6 +5,7 @@ using TMPro; // Required for TextMeshPro UI elements
 namespace AutoForge.Enemies
 {
     [RequireComponent(typeof(Rigidbody))]
+    [RequireComponent(typeof(EnemyMovement))] // Ensure the movement script is always present
     public class Enemy : MonoBehaviour
     {
         [Header("Data")]
@@ -24,10 +25,12 @@ namespace AutoForge.Enemies
         private Transform mainCameraTransform;
         private float currentHealth;
         private Rigidbody rb;
+        private EnemyMovement _enemyMovement; // Reference to the movement script
 
         void Awake()
         {
             rb = GetComponent<Rigidbody>();
+            _enemyMovement = GetComponent<EnemyMovement>(); // Get the movement script
         }
 
         void Start()
@@ -41,10 +44,8 @@ namespace AutoForge.Enemies
                 Debug.LogError("EnemyData is not assigned on this enemy!", this);
             }
 
-            // Cache the main camera's transform for performance
             mainCameraTransform = Camera.main.transform;
 
-            // Instantiate and set up the persistent health bar UI
             if (healthTextPrefab != null)
             {
                 GameObject healthUI = Instantiate(healthTextPrefab, transform.position + healthTextOffset, Quaternion.identity, transform);
@@ -53,10 +54,8 @@ namespace AutoForge.Enemies
             }
         }
 
-        // LateUpdate is called after all Update functions. Best for camera-facing UI.
         private void LateUpdate()
         {
-            // Make the health bar always face the camera
             if (healthText != null)
             {
                 healthText.transform.parent.LookAt(mainCameraTransform);
@@ -70,22 +69,25 @@ namespace AutoForge.Enemies
 
             UpdateHealthUI();
 
-            // Spawn the floating damage text at the point of impact
+            // --- THIS IS THE CRUCIAL LINK ---
+            // Tell the movement AI that it has been attacked by the player.
+            if (_enemyMovement != null)
+            {
+                _enemyMovement.OnTookDamageFromPlayer();
+            }
+            // --- END CRUCIAL LINK ---
+
             if (damageTextPrefab != null)
             {
                 GameObject dmgTextInstance = Instantiate(damageTextPrefab, hitPoint, Quaternion.identity);
-
                 if (dmgTextInstance.GetComponentInChildren<TextMeshProUGUI>() is TextMeshProUGUI tmp)
                 {
                     tmp.text = roundedAmount.ToString();
                 }
-
-                // Make the damage text face the camera and destroy it after a second
                 dmgTextInstance.transform.LookAt(mainCameraTransform);
                 Destroy(dmgTextInstance, 1f);
             }
 
-            // Apply knockback force
             if (rb != null)
             {
                 rb.AddForce(hitDirection * force, ForceMode.Impulse);
@@ -101,25 +103,20 @@ namespace AutoForge.Enemies
         {
             if (healthText != null)
             {
-                healthText.text = currentHealth.ToString("F0"); // "F0" formats as a whole number
+                healthText.text = currentHealth.ToString("F0");
             }
         }
 
         private void Die()
         {
-            // If we have a resource prefab to drop, spawn it
             if (resourcePickupPrefab != null)
             {
                 GameObject pickupObject = Instantiate(resourcePickupPrefab, transform.position + Vector3.up * 0.5f, Quaternion.identity);
-
-                // Configure the pickup with the correct resource type and amount
                 if (pickupObject.TryGetComponent<Gameplay.ResourcePickup>(out var resourcePickup))
                 {
                     resourcePickup.resourceType = lootDropType;
                     resourcePickup.amount = lootAmount;
                 }
-
-                // Add a small physical pop to the dropped item
                 if (pickupObject.TryGetComponent<Rigidbody>(out var pickupRb))
                 {
                     Vector3 randomForce = new Vector3(Random.Range(-1f, 1f), 1.5f, Random.Range(-1f, 1f));
@@ -127,11 +124,11 @@ namespace AutoForge.Enemies
                 }
             }
 
-            // Raise the event for other systems that might care about enemy deaths
-            EventManager.RaiseEnemyDied(transform.position);
+            // This assumes you have an EventManager. If not, you can comment this line out.
+            // EventManager.RaiseEnemyDied(transform.position);
 
-            // Destroy the enemy GameObject
             Destroy(gameObject);
         }
     }
 }
+

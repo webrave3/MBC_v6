@@ -171,9 +171,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7188b49b0e0f8934d90e585cdd251316, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AutoForge.EnemyMovement
-  coreTargetingChance: 50
-  targetUpdateRate: 2
-  playerDetectionRadius: 50
+  initialPlayerTargetChance: 10
+  aggroChanceOnHit: 80
+  playerDeaggroDistance: 15
   moveSpeed: 5
 --- !u!54 &1900863033342009535
 Rigidbody:
@@ -215,5 +215,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EnemyAttack
   attackDamage: 10
-  attackRate: 1.5
+  attackRate: 1
   attackRange: 2
+  playerKnockbackForce: 10
+  attackEffectPrefab: {fileID: 7317016795601384021, guid: 6470b1da63199334d8a10e9a278332cb, type: 3}
+  attackLungeForce: 75
+  attackRecoilForce: 25

@@ -6,31 +6,34 @@ using AutoForge.Factory;
 namespace AutoForge.Enemies
 {
     [RequireComponent(typeof(NavMeshAgent))]
+    [RequireComponent(typeof(EnemyAttack))]
     public class EnemyMovement : MonoBehaviour
     {
-        [Header("AI Settings")]
-        [Tooltip("The chance (0-100) that this enemy will target the Power Core instead of the Player.")]
-        [Range(0, 100)] public int coreTargetingChance = 75;
-        [Tooltip("How often the enemy re-evaluates its target (in seconds).")]
-        [SerializeField] private float targetUpdateRate = 1.0f;
-        [Tooltip("How close the player must be to be considered a potential target.")]
-        [SerializeField] private float playerDetectionRadius = 20f;
+        [Header("AI Behavior")]
+        [Tooltip("On spawn, what is the chance (0-100) this enemy will immediately target the player?")]
+        [Range(0, 100)] public int initialPlayerTargetChance = 10;
+
+        [Tooltip("When hit by the player, what is the chance (0-100) this enemy will get angry and attack the player back?")]
+        [Range(0, 100)] public int aggroChanceOnHit = 80;
+
+        [Tooltip("If angry at the player, how far away does the player need to be for this enemy to give up and return to the core?")]
+        public float playerDeaggroDistance = 25f;
 
         [Header("Movement")]
         [SerializeField] private float moveSpeed = 3.5f;
 
-        private NavMeshAgent agent;
-        private EnemyAttack _enemyAttack; // Reference to the attack script
+        public NavMeshAgent agent { get; private set; }
+        private EnemyAttack _enemyAttack;
         public Transform target { get; private set; }
+
+        private bool _isAggroedOnPlayer = false;
 
         private void Awake()
         {
             agent = GetComponent<NavMeshAgent>();
-            _enemyAttack = GetComponent<EnemyAttack>(); // Get the attack script
+            _enemyAttack = GetComponent<EnemyAttack>();
             agent.speed = moveSpeed;
 
-            // --- IMPORTANT ---
-            // Set the agent's stopping distance based on the attack range
             if (_enemyAttack != null)
             {
                 agent.stoppingDistance = _enemyAttack.attackRange;
@@ -39,48 +42,66 @@ namespace AutoForge.Enemies
 
         private void Start()
         {
-            StartCoroutine(UpdateTargetCoroutine());
+            DecideInitialTarget();
         }
 
-        private System.Collections.IEnumerator UpdateTargetCoroutine()
+        public void OnTookDamageFromPlayer()
         {
-            while (true)
-            {
-                DecideTarget();
-                yield return new WaitForSeconds(targetUpdateRate);
-            }
-        }
+            if (_isAggroedOnPlayer) return;
 
-        private void DecideTarget()
-        {
-            Transform playerTarget = null;
-            Transform coreTarget = PowerCore.Instance?.transform;
-
-            // Check if player is within detection radius
-            if (PlayerStats.Instance != null)
+            int roll = Random.Range(0, 100);
+            if (roll < aggroChanceOnHit)
             {
-                float distanceToPlayer = Vector3.Distance(transform.position, PlayerStats.Instance.transform.position);
-                if (distanceToPlayer <= playerDetectionRadius)
+                _isAggroedOnPlayer = true;
+                if (PlayerStats.Instance != null)
                 {
-                    playerTarget = PlayerStats.Instance.transform;
+                    target = PlayerStats.Instance.transform;
                 }
             }
+        }
 
-            if (playerTarget == null && coreTarget == null) target = null;
-            else if (playerTarget != null && coreTarget == null) target = playerTarget;
-            else if (playerTarget == null && coreTarget != null) target = coreTarget;
+        private void DecideInitialTarget()
+        {
+            int roll = Random.Range(0, 100);
+            if (roll < initialPlayerTargetChance && PlayerStats.Instance != null)
+            {
+                // This enemy will start by targeting the player
+                _isAggroedOnPlayer = true;
+                target = PlayerStats.Instance.transform;
+            }
             else
             {
-                int roll = Random.Range(0, 100);
-                target = (roll < coreTargetingChance) ? coreTarget : playerTarget;
+                // This enemy will start by targeting the core (default behavior)
+                _isAggroedOnPlayer = false;
+                if (PowerCore.Instance != null)
+                {
+                    target = PowerCore.Instance.transform;
+                }
             }
         }
 
         private void Update()
         {
+            if (_isAggroedOnPlayer)
+            {
+                if (PlayerStats.Instance == null)
+                {
+                    _isAggroedOnPlayer = false;
+                    target = PowerCore.Instance?.transform; // Revert to core if player is gone
+                }
+                else
+                {
+                    float distanceToPlayer = Vector3.Distance(transform.position, PlayerStats.Instance.transform.position);
+                    if (distanceToPlayer > playerDeaggroDistance)
+                    {
+                        _isAggroedOnPlayer = false;
+                        target = PowerCore.Instance?.transform; // Revert to core
+                    }
+                }
+            }
+
             if (target != null && agent.isActiveAndEnabled)
             {
-                // Constantly update the destination for a moving target
                 agent.SetDestination(target.position);
             }
         }
