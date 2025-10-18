@@ -10,7 +10,7 @@ namespace AutoForge.Core
     public class Bullet : MonoBehaviour
     {
         [Header("Settings")]
-        public float speed = 25f;
+        public float speed = 75f;
         public float baseDamage = 10f;
         public float knockbackForce = 200f;
 

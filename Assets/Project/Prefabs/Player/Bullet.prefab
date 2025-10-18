@@ -95,7 +95,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fe0d9a89fa23c5d45a6448654327f773, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Bullet
-  speed: 100
+  speed: 75
   baseDamage: 10
   knockbackForce: 2
   hitEffectPrefab: {fileID: 4085903031936891527, guid: 4851884b771ba924aae473f1cb3e82f1, type: 3}
