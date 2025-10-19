@@ -624,6 +624,9 @@ MonoBehaviour:
   settings: {fileID: 11400000, guid: e98028a966250ee41a3e958ab5569e6e, type: 2}
   player: {fileID: 7556636659251310684, guid: bdf16e61298fc1645bc273b1b8655285, type: 3}
   navMeshSurface: {fileID: 130903682}
+  terrainLayer:
+    serializedVersion: 2
+    m_Bits: 1024
 --- !u!1 &405819019
 GameObject:
   m_ObjectHideFlags: 0
@@ -1379,7 +1382,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &710458514
 Transform:
   m_ObjectHideFlags: 0
@@ -2146,7 +2149,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 7556636659251310684, guid: bdf16e61298fc1645bc273b1b8655285, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 20
+      value: 25
       objectReference: {fileID: 0}
     - target: {fileID: 7556636659251310684, guid: bdf16e61298fc1645bc273b1b8655285, type: 3}
       propertyPath: m_LocalPosition.z
@@ -2381,6 +2384,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::AutoForge.Core.EnemySpawner
   enemyPrefab: {fileID: 6073925524709711139, guid: d5ba1158a04866a43a092fa0b24b863c, type: 3}
   spawnInterval: 2
+  spawnHeightOffset: 0.1
 --- !u!4 &1189064296 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 8642225304373351647, guid: 50a0925b0c22af146a2d15615f815a1c, type: 3}
@@ -2581,6 +2585,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AutoForge.Core.GameManager
   mobileFactoryPrefab: {fileID: 677021087417967928, guid: 5d624817ee312aa4287958caf1860fef, type: 3}
+  factorySpawnPosition: {x: 0, y: 0, z: 5}
 --- !u!4 &1364773236 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 8111781018561290000, guid: 8a7437817844dce4894b049de73b75f2, type: 3}

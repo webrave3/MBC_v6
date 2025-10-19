@@ -2,6 +2,7 @@
 using UnityEngine;
 using System.Collections.Generic;
 using Unity.AI.Navigation;
+using System.Collections; // <-- 1. ADD THIS NAMESPACE
 
 namespace AutoForge.World
 {
@@ -16,8 +17,12 @@ namespace AutoForge.World
         public Transform player;
         public NavMeshSurface navMeshSurface;
 
+        [Header("Spawning")]
+        [Tooltip("Set this to the LayerMask that your Chunk prefabs are on. Used for safe spawning raycasts.")]
+        public LayerMask terrainLayer;
+
         [Header("Runtime State")]
-        private Vector2Int _currentPlayerChunkCoord = Vector2Int.one * int.MinValue; // Initialize to force first update
+        private Vector2Int _currentPlayerChunkCoord = Vector2Int.one * int.MinValue;
         private Dictionary<Vector2Int, Chunk> _activeChunks = new Dictionary<Vector2Int, Chunk>();
         private Queue<Chunk> _chunkPool = new Queue<Chunk>();
 
@@ -33,26 +38,36 @@ namespace AutoForge.World
             Instance = this;
         }
 
-        private void Start()
+        // 2. CHANGE 'void Start()' TO 'IEnumerator Start()'
+        private IEnumerator Start()
         {
             if (player == null)
             {
                 Debug.LogError("Player transform is not set in WorldManager!");
-                return;
+                yield break; // Use yield break in a coroutine
             }
             if (navMeshSurface == null)
             {
                 Debug.LogWarning("NavMeshSurface is not set in WorldManager. AI will not update.");
             }
+            if (terrainLayer == 0)
+            {
+                Debug.LogWarning($"<color=yellow>[WorldManager Warning]</color> 'Terrain Layer' is not set in the inspector. " +
+                                 "GetSafeSpawnPosition will not work correctly. Please assign the layer your Chunks are on.", this);
+            }
 
-            // Force initial load calculation correctly
             _currentPlayerChunkCoord = GetChunkCoordFromPosition(player.position);
             Debug.Log($"<color=yellow>[WorldManager Start]</color> Initial player chunk coord: {_currentPlayerChunkCoord}");
+
             UpdateChunks();
             UpdateNavMesh();
 
             if (_isFirstLoad)
             {
+                // 3. ADD THIS LINE
+                // This waits for the physics engine to update and recognize the new MeshColliders
+                yield return new WaitForFixedUpdate();
+
                 OnInitialWorldGenerated?.Invoke();
                 _isFirstLoad = false;
                 Debug.Log("<color=green>[WorldManager Start]</color> Initial world generation complete. Fired event.");
@@ -67,7 +82,6 @@ namespace AutoForge.World
 
             if (playerChunkCoord != _currentPlayerChunkCoord)
             {
-                // --- THIS IS THE ONLY LOG WE CARE ABOUT RIGHT NOW ---
                 Debug.Log($"<color=orange>[WorldManager Update]</color> Player moved to new chunk! " +
                           $"Old: {_currentPlayerChunkCoord}, New: {playerChunkCoord}. Triggering UpdateChunks.");
 
@@ -79,13 +93,11 @@ namespace AutoForge.World
 
         public Vector2Int GetChunkCoordFromPosition(Vector3 position)
         {
-            // --- Added check for valid settings ---
             if (settings == null || settings.chunkSize <= 0)
             {
                 Debug.LogError("<color=red>[WorldManager ERROR]</color> WorldSettings not assigned or chunkSize is invalid!");
                 return Vector2Int.zero;
             }
-            // --- End Add ---
 
             int x = Mathf.FloorToInt(position.x / settings.chunkSize);
             int z = Mathf.FloorToInt(position.z / settings.chunkSize);
@@ -94,8 +106,6 @@ namespace AutoForge.World
 
         private void UpdateChunks()
         {
-            // Debug.Log($"<color=gray>[WorldManager UpdateChunks]</color> Running unload/load logic for center coord: {_currentPlayerChunkCoord}"); // Keep this commented unless needed
-
             List<Vector2Int> chunksToUnload = new List<Vector2Int>();
             foreach (var chunkPair in _activeChunks)
             {
@@ -113,7 +123,6 @@ namespace AutoForge.World
             {
                 if (_activeChunks.TryGetValue(coord, out Chunk chunk))
                 {
-                    // Debug.Log($"<color=gray>[WorldManager UpdateChunks]</color> Deactivating chunk {coord}"); // Keep commented
                     chunk.gameObject.SetActive(false);
                     _chunkPool.Enqueue(chunk);
                     _activeChunks.Remove(coord);
@@ -131,7 +140,6 @@ namespace AutoForge.World
 
                     if (!_activeChunks.ContainsKey(coord))
                     {
-                        // Removed the log from here as LoadChunk will be called anyway
                         LoadChunk(coord);
                     }
                 }
@@ -140,54 +148,63 @@ namespace AutoForge.World
 
         private void LoadChunk(Vector2Int coord)
         {
-            // --- Added safety check ---
             if (settings == null || settings.chunkPrefab == null)
             {
                 Debug.LogError("<color=red>[WorldManager ERROR]</color> WorldSettings not assigned or chunkPrefab is NULL!");
                 return;
             }
-            // --- End Add ---
-
 
             Chunk newChunk;
             if (_chunkPool.Count > 0)
             {
                 newChunk = _chunkPool.Dequeue();
                 newChunk.gameObject.SetActive(true);
-                // Debug.Log($"<color=lightblue>[WorldManager LoadChunk]</color> Reusing chunk for coord: {coord}"); // Keep commented
             }
             else
             {
                 GameObject chunkObject = Instantiate(
                     settings.chunkPrefab,
-                    Vector3.zero, // Position is set in Chunk.Load
+                    Vector3.zero,
                     Quaternion.identity,
-                    transform // Parent to WorldManager
+                    transform
                 );
                 newChunk = chunkObject.GetComponent<Chunk>();
                 if (newChunk == null)
                 {
                     Debug.LogError($"<color=red><b>[WorldManager ERROR]</b></color> Chunk prefab is missing the Chunk script!", chunkObject);
-                    Destroy(chunkObject); // Prevent further errors
+                    Destroy(chunkObject);
                     return;
                 }
-                // Debug.Log($"<color=lightblue>[WorldManager LoadChunk]</color> Instantiated new chunk for coord: {coord}"); // Keep commented
             }
 
-            // --- Added safety check ---
             if (newChunk != null)
             {
                 newChunk.Load(coord, settings.chunkSize);
                 _activeChunks.Add(coord, newChunk);
             }
-            // --- End Add ---
         }
 
         private void UpdateNavMesh()
         {
             if (navMeshSurface == null) return;
             navMeshSurface.BuildNavMesh();
-            // Debug.Log($"<color=gray>[WorldManager UpdateNavMesh]</color> Rebuilt NavMesh."); // Keep commented
+        }
+
+        public Vector3 GetSafeSpawnPosition(Vector3 desiredPosition, float raycastMaxHeight = 1000f)
+        {
+            Vector3 rayStart = new Vector3(desiredPosition.x, raycastMaxHeight, desiredPosition.z);
+
+            if (Physics.Raycast(rayStart, Vector3.down, out RaycastHit hit, raycastMaxHeight * 2f, terrainLayer))
+            {
+                return hit.point;
+            }
+            else
+            {
+                Debug.LogWarning($"<color=yellow>[WorldManager]</color> GetSafeSpawnPosition raycast missed terrain at ({desiredPosition.x}, {desiredPosition.z}). " +
+                                 "Ensure the 'Terrain Layer' is set in WorldManager and that Chunks are on this layer. " +
+                                 "Falling back to original Y value.", this);
+                return desiredPosition;
+            }
         }
     }
 }

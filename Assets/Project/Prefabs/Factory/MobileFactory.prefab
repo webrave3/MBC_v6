@@ -86,9 +86,9 @@ Rigidbody:
   m_ImplicitCom: 1
   m_ImplicitTensor: 1
   m_UseGravity: 1
-  m_IsKinematic: 0
+  m_IsKinematic: 1
   m_Interpolate: 0
-  m_Constraints: 80
+  m_Constraints: 0
   m_CollisionDetection: 1
 --- !u!114 &4343280329282740797
 MonoBehaviour:
@@ -102,9 +102,17 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 920c1b82bd502a14ea5dcda70c5088f6, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MobileFactory
-  leashDistance: 2
-  brakingDistance: 5
-  brakingCurve: 2
+  stoppingDistance: 5
+  activationDistance: 7
+  hoverHeight: 2
+  hoverForce: 30
+  hoverDamp: 5
+  moveForce: 100
+  rotationSpeed: 25
+  bobFrequency: 2
+  bobAmplitude: 1
+  tiltAngle: 25
+  tiltSpeed: 5
 --- !u!114 &7993505398098195424
 MonoBehaviour:
   m_ObjectHideFlags: 0

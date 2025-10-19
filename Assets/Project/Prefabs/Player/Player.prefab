@@ -1844,7 +1844,7 @@ MonoBehaviour:
   GroundedRadius: 0.28
   GroundLayers:
     serializedVersion: 2
-    m_Bits: 1
+    m_Bits: 1024
   CinemachineCameraTarget: {fileID: 124342550512295670}
   TopClamp: 75
   BottomClamp: -75
@@ -2021,7 +2021,7 @@ MonoBehaviour:
   tileSize: 2
   obstructionLayers:
     serializedVersion: 2
-    m_Bits: 321
+    m_Bits: 1345
   placementRulesEnabled: 0
   socketSelectionAngle: 0.7
   enableDebugLogging: 1

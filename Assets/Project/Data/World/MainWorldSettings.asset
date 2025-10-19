@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::WorldSettings
   chunkSize: 129
   chunkHeight: 50
-  viewDistance: 2
+  viewDistance: 1
   chunkResolution: 101
   chunkPrefab: {fileID: 588561818078841081, guid: e9c9b468f8e300940a34267155b8c180, type: 3}
   heightNoiseSettings: {fileID: 11400000, guid: a13a9b3374ca9414eb077d63a914113d, type: 2}
