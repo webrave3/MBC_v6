@@ -109,10 +109,10 @@ MonoBehaviour:
   hoverDamp: 5
   moveForce: 100
   rotationSpeed: 25
-  bobFrequency: 2
-  bobAmplitude: 1
-  tiltAngle: 25
-  tiltSpeed: 5
+  bobFrequency: 4
+  bobAmplitude: 1.5
+  tiltAngle: 50
+  tiltSpeed: 10
 --- !u!114 &7993505398098195424
 MonoBehaviour:
   m_ObjectHideFlags: 0
