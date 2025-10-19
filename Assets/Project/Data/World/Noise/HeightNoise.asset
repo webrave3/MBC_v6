@@ -13,8 +13,8 @@ MonoBehaviour:
   m_Name: HeightNoise
   m_EditorClassIdentifier: Assembly-CSharp::NoiseSettings
   seed: 2
-  scale: 250
-  octaves: 6
+  scale: 200
+  octaves: 4
   persistence: 0.5
   lacunarity: 2
   offset: {x: 0, y: 0}

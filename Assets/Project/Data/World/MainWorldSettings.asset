@@ -12,9 +12,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 219285a325762104e8bc88ef02291766, type: 3}
   m_Name: MainWorldSettings
   m_EditorClassIdentifier: Assembly-CSharp::WorldSettings
-  chunkSize: 100
+  chunkSize: 129
   chunkHeight: 50
-  viewDistance: 5
+  viewDistance: 2
   chunkResolution: 101
   chunkPrefab: {fileID: 588561818078841081, guid: e9c9b468f8e300940a34267155b8c180, type: 3}
   heightNoiseSettings: {fileID: 11400000, guid: a13a9b3374ca9414eb077d63a914113d, type: 2}
