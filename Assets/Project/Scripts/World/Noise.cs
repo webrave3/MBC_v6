@@ -5,32 +5,49 @@ namespace AutoForge.World
 {
     public static class Noise
     {
-        // Generates a 2D noise map based on fBM
         public static float[,] GenerateNoiseMap(int mapWidth, int mapHeight, NoiseSettings settings, Vector2 chunkOffset)
         {
+            if (settings == null)
+            {
+                Debug.LogError("<color=red><b>[Noise ERROR]</b></color> Received null NoiseSettings!");
+                return null;
+            }
+            if (settings.scale <= 0)
+            {
+                Debug.LogWarning($"<color=yellow>[Noise Warning]</color> Noise scale is zero or negative ({settings.scale}). Clamping to 0.0001f.");
+                settings.scale = 0.0001f;
+            }
+            if (mapWidth <= 0 || mapHeight <= 0)
+            {
+                Debug.LogError($"<color=red><b>[Noise ERROR]</b></color> Map dimensions are invalid: Width={mapWidth}, Height={mapHeight}");
+                return null;
+            }
+
+
             float[,] noiseMap = new float[mapWidth, mapHeight];
 
-            // Use seed for pseudo-random offsets per octave
             System.Random prng = new System.Random(settings.seed);
             Vector2[] octaveOffsets = new Vector2[settings.octaves];
             for (int i = 0; i < settings.octaves; i++)
             {
-                float offsetX = prng.Next(-100000, 100000) + settings.offset.x + chunkOffset.x;
-                float offsetY = prng.Next(-100000, 100000) + settings.offset.y + chunkOffset.y;
+                float offsetX = prng.Next(-100000, 100000) + settings.offset.x; // Apply global offset here
+                float offsetY = prng.Next(-100000, 100000) - settings.offset.y; // Apply global offset here
                 octaveOffsets[i] = new Vector2(offsetX, offsetY);
             }
 
             float maxPossibleHeight = 0;
             float amplitude = 1;
-
-            // This is used to calculate maxPossibleHeight for normalization
             for (int i = 0; i < settings.octaves; i++)
             {
                 maxPossibleHeight += amplitude;
                 amplitude *= settings.persistence;
             }
+            if (maxPossibleHeight <= 0) maxPossibleHeight = 1; // Safety
 
-            // Loop through every point in the map
+
+            int logX = mapWidth / 2;
+            int logY = mapHeight / 2;
+
             for (int y = 0; y < mapHeight; y++)
             {
                 for (int x = 0; x < mapWidth; x++)
@@ -39,37 +56,46 @@ namespace AutoForge.World
                     float frequency = 1;
                     float noiseHeight = 0;
 
-                    // --- This is the fBM loop ---
                     for (int i = 0; i < settings.octaves; i++)
                     {
-                        // Calculate sample coordinates for this octave
-                        float sampleX = (x / settings.scale * frequency) + octaveOffsets[i].x;
-                        float sampleY = (y / settings.scale * frequency) + octaveOffsets[i].y;
+                        // --- IMPORTANT FIX FOR CHUNK BOUNDARIES ---
+                        // The 'chunkOffset' passed in now represents "grid units".
+                        // 'x' and 'y' are also "grid units" within the current chunk.
+                        // We combine them before scaling by 'settings.scale'.
+                        float sampleX = (x + chunkOffset.x) / settings.scale * frequency + octaveOffsets[i].x;
+                        float sampleY = (y + chunkOffset.y) / settings.scale * frequency + octaveOffsets[i].y;
+                        // --- END FIX ---
 
-                        // Get the Perlin noise value
-                        // * 2 - 1 makes the range [-1, 1] for more interesting terrain
+
                         float perlinValue = Mathf.PerlinNoise(sampleX, sampleY) * 2 - 1;
-
-                        // Add it to the total height, scaled by amplitude
                         noiseHeight += perlinValue * amplitude;
 
-                        // Update amplitude and frequency for the next octave (micro-layer)
                         amplitude *= settings.persistence;
                         frequency *= settings.lacunarity;
                     }
+
+                    // --- Noise Raw Debug (Optional, keep commented for less spam) ---
+                    // if (x == logX && y == logY) {
+                    //    Debug.Log($"<color=yellow>[Noise Raw Debug]</color> Offset: {chunkOffset}, Center Raw NoiseHeight (before norm): {noiseHeight:F4}");
+                    // }
+                    // --- END Noise Raw Debug ---
 
                     noiseMap[x, y] = noiseHeight;
                 }
             }
 
-            // --- Normalization ---
-            // Now, normalize the map to be between 0 and 1
+            // Normalization
+            float halfMaxHeight = maxPossibleHeight;
+            float fullRange = maxPossibleHeight * 2f;
+            if (fullRange <= 0) fullRange = 1f;
+
             for (int y = 0; y < mapHeight; y++)
             {
                 for (int x = 0; x < mapWidth; x++)
                 {
-                    // This remaps the value from [-maxPossibleHeight, maxPossibleHeight] to [0, 1]
-                    noiseMap[x, y] = (noiseMap[x, y] + maxPossibleHeight) / (maxPossibleHeight * 2f);
+                    float currentNoise = noiseMap[x, y];
+                    noiseMap[x, y] = (currentNoise + halfMaxHeight) / fullRange;
+                    noiseMap[x, y] = Mathf.Clamp01(noiseMap[x, y]);
                 }
             }
 

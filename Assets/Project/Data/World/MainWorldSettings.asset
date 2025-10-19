@@ -15,4 +15,15 @@ MonoBehaviour:
   chunkSize: 100
   chunkHeight: 50
   viewDistance: 5
+  chunkResolution: 101
   chunkPrefab: {fileID: 588561818078841081, guid: e9c9b468f8e300940a34267155b8c180, type: 3}
+  heightNoiseSettings: {fileID: 11400000, guid: a13a9b3374ca9414eb077d63a914113d, type: 2}
+  temperatureNoiseSettings: {fileID: 11400000, guid: e61a595560ef49c45a12dec28d63775c, type: 2}
+  humidityNoiseSettings: {fileID: 11400000, guid: 58e87667ec9814f44b34f2adb3060180, type: 2}
+  buildZoneNoiseSettings: {fileID: 11400000, guid: 43a30ec7f5ad52a48ad200cb76954134, type: 2}
+  biomes:
+  - {fileID: 11400000, guid: 5fa9d2cf9964fd946a68cc5f71556471, type: 2}
+  - {fileID: 11400000, guid: 2ef5cc5759be60f43b12b1ce7686fd31, type: 2}
+  defaultBiome: {fileID: 11400000, guid: de12c18da3410ab4e88cf620cc02cdd0, type: 2}
+  maxNavigableSlope: 30
+  buildZoneFlattenStrength: 0.8

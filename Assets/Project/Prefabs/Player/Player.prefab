@@ -1730,6 +1730,7 @@ GameObject:
   - component: {fileID: -2733005861565514256}
   - component: {fileID: 6538848872692239692}
   - component: {fileID: 5740742011418128293}
+  - component: {fileID: -2478568535231807165}
   m_Layer: 8
   m_Name: Player
   m_TagString: Player
@@ -1799,7 +1800,7 @@ CharacterController:
   m_Radius: 0.28
   m_SlopeLimit: 45
   m_StepOffset: 0.25
-  m_SkinWidth: 0.02
+  m_SkinWidth: 0.1
   m_MinMoveDistance: 0
   m_Center: {x: 0, y: 0.93, z: 0}
 --- !u!114 &5984604930648037608
@@ -1835,6 +1836,9 @@ MonoBehaviour:
   Gravity: -30
   JumpTimeout: 0.3
   FallTimeout: 0.15
+  DashSpeed: 20
+  DashDuration: 0.2
+  DashCooldown: 1
   Grounded: 1
   GroundedOffset: -0.14
   GroundedRadius: 0.28
@@ -1879,6 +1883,7 @@ MonoBehaviour:
   look: {x: 0, y: 0}
   jump: 0
   sprint: 0
+  dash: 0
   analogMovement: 0
   cursorLocked: 1
   cursorInputForLook: 1
@@ -1987,6 +1992,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AutoForge.Player.PlayerStats
   baseDamage: 25
+  maxShield: 100
+  shieldRechargeRate: 20
+  shieldRechargeDelay: 3
+  knockbackDampening: 5
 --- !u!114 &8201468692796701950
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2099,6 +2108,18 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 731d0b6a129f186459543ead2c94d3bc, type: 2}
   - {fileID: 11400000, guid: 93cb3a2fbf0e5c140844848b7308b416, type: 2}
   - {fileID: 11400000, guid: 953e7716f2d19b04ea59d8ff3c817a06, type: 2}
+--- !u!114 &-2478568535231807165
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6223356944110169047}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0b93ec103f1a62649bc6ae07426307d7, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerWorldLoader
 --- !u!1 &6586177860892118180
 GameObject:
   m_ObjectHideFlags: 0
