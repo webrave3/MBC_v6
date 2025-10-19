@@ -24,12 +24,13 @@ namespace AutoForge.World
                 Debug.LogError($"<color=red><b>[Chunk ERROR]</b></color> {gameObject.name} is missing its MeshCollider component!", this);
             }
 
+            // Create Mesh instance once in Awake and reuse it
             _mesh = new Mesh();
             _mesh.name = "Chunk Mesh";
-            _meshFilter.mesh = _mesh;
+            _meshFilter.mesh = _mesh; // Assign reusable mesh instance
         }
 
-        public void Load(Vector2Int coord, int chunkSize)
+        public void Load(Vector2Int coord, int chunkSize, Material worldMaterial)
         {
             this.chunkCoord = coord;
 
@@ -40,135 +41,110 @@ namespace AutoForge.World
             );
 
             gameObject.name = $"Chunk ({coord.x}, {coord.y})";
+
+            // Assign the single splatmap material provided by WorldManager
+            if (worldMaterial != null)
+            {
+                _meshRenderer.material = worldMaterial;
+            }
+            else
+            {
+                Debug.LogError($"<color=red><b>[Chunk ERROR]</b></color> World Material is null for chunk {coord}!", this);
+                // Fallback to default material to avoid errors, though it won't look right
+                _meshRenderer.material = new Material(Shader.Find("Standard"));
+            }
+
             GenerateTerrain();
         }
 
         private void GenerateTerrain()
         {
-            WorldSettings settings = WorldManager.Instance.settings;
+            // Use null-conditional operator ?. for safety
+            WorldSettings settings = WorldManager.Instance?.settings;
             if (settings == null)
             {
-                Debug.LogError("<color=red><b>[Chunk ERROR]</b></color> WorldManager.Instance.settings is null!");
+                Debug.LogError($"<color=red><b>[Chunk ERROR]</b></color> WorldManager.Instance or its settings are null for chunk {chunkCoord}!");
                 return;
             }
 
-            int size = settings.chunkResolution; // This is (vertices_per_side)
-            int chunkSize = settings.chunkSize; // This is (world_units_per_chunk)
-            int chunkHeight = settings.chunkHeight;
+            int resolution = settings.chunkResolution; // Vertices per side
+            int chunkSize = settings.chunkSize;     // World units per chunk edge
+            int chunkHeight = settings.chunkHeight;   // Max height scale factor
 
-            // --- IMPORTANT: ChunkOffset for Perlin Noise ---
-            // The Perlin noise map needs to sample from a continuous field.
-            // If the noise map is 'size x size' vertices, then the number of 'steps' is (size - 1).
-            // So, each chunk's sampling offset needs to be based on its coordinate
-            // multiplied by the *number of steps* in a chunk.
+            // Calculate noise offset based on chunk coordinates and resolution steps
             Vector2 chunkOffset = new Vector2(
-                chunkCoord.x * (size - 1), // This represents the 'steps' or 'grid units' for noise
-                chunkCoord.y * (size - 1)
+                chunkCoord.x * (resolution - 1),
+                chunkCoord.y * (resolution - 1)
             );
-
-            // --- DEBUG 1: Verify chunk coordinates and offset calculation ---
-            // Debug.Log($"<color=cyan>[Chunk Debug 1/5]</color> Loading {gameObject.name}. Coord: {chunkCoord}, Offset: {chunkOffset}");
-
 
             // --- 1. Generate Noise Maps ---
             if (settings.heightNoiseSettings == null || settings.temperatureNoiseSettings == null ||
                 settings.humidityNoiseSettings == null || settings.buildZoneNoiseSettings == null)
             {
-                Debug.LogError("<color=red><b>[Chunk ERROR]</b></color> One or more NoiseSettings are NULL in WorldSettings!");
+                Debug.LogError($"<color=red><b>[Chunk ERROR]</b></color> One or more NoiseSettings are NULL in WorldSettings for chunk {chunkCoord}!");
                 return;
             }
-            float[,] heightMap = Noise.GenerateNoiseMap(size, size, settings.heightNoiseSettings, chunkOffset);
-            float[,] tempMap = Noise.GenerateNoiseMap(size, size, settings.temperatureNoiseSettings, chunkOffset);
-            float[,] humidityMap = Noise.GenerateNoiseMap(size, size, settings.humidityNoiseSettings, chunkOffset);
-            float[,] buildZoneMask = Noise.GenerateNoiseMap(size, size, settings.buildZoneNoiseSettings, chunkOffset);
+            float[,] heightMap = Noise.GenerateNoiseMap(resolution, resolution, settings.heightNoiseSettings, chunkOffset);
+            float[,] tempMap = Noise.GenerateNoiseMap(resolution, resolution, settings.temperatureNoiseSettings, chunkOffset);
+            float[,] humidityMap = Noise.GenerateNoiseMap(resolution, resolution, settings.humidityNoiseSettings, chunkOffset);
+            float[,] buildZoneMask = Noise.GenerateNoiseMap(resolution, resolution, settings.buildZoneNoiseSettings, chunkOffset);
 
-
-            // --- Error Checks for noise maps ---
             if (heightMap == null || tempMap == null || humidityMap == null || buildZoneMask == null)
             {
-                Debug.LogError($"<color=red><b>[Chunk ERROR]</b></color> One or more noise maps returned null for {gameObject.name}!");
+                Debug.LogError($"<color=red><b>[Chunk ERROR]</b></color> Failed to generate one or more noise maps for chunk {chunkCoord}!");
                 return;
             }
 
-
-            // --- DEBUG: Chunk Raw Height Debug (Optional, keep commented for less spam) ---
-            // int centerX = size / 2;
-            // int centerY = size / 2;
-            // float centerRawHeight = -999f;
-            // if (heightMap.GetLength(0) > centerX && centerX >= 0 && heightMap.GetLength(1) > centerY && centerY >=0) {
-            //      centerRawHeight = heightMap[centerX, centerY];
-            // } else {
-            //      Debug.LogWarning($"<color=yellow>[Chunk Raw Height Debug]</color> Center coordinates ({centerX},{centerY}) out of bounds for heightMap size ({heightMap.GetLength(0)},{heightMap.GetLength(1)}) on {gameObject.name}.");
-            // }
-            // Debug.Log($"<color=#FFBF00>[Chunk Raw Height Debug]</color> {gameObject.name} center height (0-1 range): {centerRawHeight:F4}");
-
-
-            // --- 2. Run "AUTO-FORGE" Constraint Pass (RE-ENABLED) ---
+            // --- 2. Run "AUTO-FORGE" Constraint Pass ---
+            // These modify the heightMap BEFORE mesh generation
             TerrainFilter.ApplySlopeClamping(heightMap, chunkSize, chunkHeight, settings.maxNavigableSlope);
             TerrainFilter.ApplyAreaFlattening(heightMap, buildZoneMask, settings.buildZoneFlattenStrength);
+            // Add other filters like PathCarving here if implemented
 
 
-            // --- 3. Determine Biomes & Splatmap (RE-ENABLED) ---
-            if (settings.biomes == null || settings.biomes.Length == 0)
-            {
-                Debug.LogWarning("<color=yellow>[Chunk Warning]</color> No Biomes defined in WorldSettings! Using default material if available.");
-            }
-
-            Color[,] splatMap = new Color[size, size];
+            // --- 3. Determine Dominant Biome (If needed for other logic) ---
+            // This part is less important for the visual splatmap but might be useful for gameplay.
             BiomeSettings dominantBiome = settings.defaultBiome;
-            if (dominantBiome == null && settings.biomes != null && settings.biomes.Length > 0)
-            {
-                dominantBiome = settings.biomes[0]; // Fallback to first biome if default is null
-            }
-
-            // Determine splatmap and dominant biome for rendering material
             if (settings.biomes != null && settings.biomes.Length > 0)
             {
-                int centerX = size / 2;
-                int centerY = size / 2;
-                BiomeSettings currentCenterBiome = null;
-
-                for (int y = 0; y < size; y++)
+                int centerX = resolution / 2;
+                int centerY = resolution / 2;
+                if (centerX >= 0 && centerX < resolution && centerY >= 0 && centerY < resolution)
                 {
-                    for (int x = 0; x < size; x++)
+                    float centerTemp = tempMap[centerX, centerY];
+                    float centerHumidity = humidityMap[centerX, centerY];
+                    BiomeSettings centerBiome = settings.GetBiome(centerTemp, centerHumidity);
+                    if (centerBiome != null)
                     {
-                        float temp = tempMap[x, y];
-                        float humidity = humidityMap[x, y];
-                        BiomeSettings biome = settings.GetBiome(temp, humidity);
-                        if (biome == null) biome = dominantBiome; // Use dominant/fallback if no biome matches
-
-                        splatMap[x, y] = biome?.GetSplatColor() ?? Color.magenta; // Use magenta if biome or color is null
-
-                        if (x == centerX && y == centerY)
-                        {
-                            currentCenterBiome = biome;
-                        }
+                        dominantBiome = centerBiome;
                     }
                 }
-                // Assign dominantBiome from the center of the chunk
-                if (currentCenterBiome != null)
+                else
                 {
-                    dominantBiome = currentCenterBiome;
+                    Debug.LogWarning($"<color=yellow>[Chunk Warning]</color> Center coordinates ({centerX},{centerY}) out of bounds for noise maps on {gameObject.name}. Cannot determine dominant biome accurately.");
+                    dominantBiome = settings.defaultBiome ?? (settings.biomes.Length > 0 ? settings.biomes[0] : null);
                 }
             }
+            if (dominantBiome == null)
+            {
+                Debug.LogWarning($"<color=yellow>[Chunk Warning]</color> No dominant or default biome found for chunk {chunkCoord}.");
+            }
 
 
-            // --- 4. Generate Mesh ---
-            MeshData meshData = MeshGenerator.GenerateMesh(heightMap, splatMap, chunkSize, chunkHeight);
+            // --- 4. Generate Mesh Data (With Vertex Color Splatting) ---
+            // Pass chunkCoord here for logging context inside the generator
+            MeshData meshData = MeshGenerator.GenerateMeshWithSplatting(
+                heightMap,
+                tempMap,
+                humidityMap,
+                buildZoneMask,
+                settings,
+                chunkCoord // <-- Pass the chunk coordinate
+            );
 
             // --- 5. Apply Data to Components ---
+            // ApplyToMesh handles null checks internally
             MeshGenerator.ApplyToMesh(_mesh, _meshCollider, meshData);
-
-            if (dominantBiome != null && dominantBiome.terrainMaterial != null)
-            {
-                _meshRenderer.material = dominantBiome.terrainMaterial;
-            }
-            else
-            {
-                Debug.LogWarning($"<color=yellow>[Chunk Warning]</color> No dominant biome or valid material found for chunk {chunkCoord}. Using default grey material.");
-                // Ensure a material is always assigned to prevent rendering issues
-                _meshRenderer.material = new Material(Shader.Find("Standard")); // Fallback to Unity's default Standard Shader
-            }
         }
     }
 }

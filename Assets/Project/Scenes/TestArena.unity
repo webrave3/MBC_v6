@@ -624,6 +624,7 @@ MonoBehaviour:
   settings: {fileID: 11400000, guid: e98028a966250ee41a3e958ab5569e6e, type: 2}
   player: {fileID: 7556636659251310684, guid: bdf16e61298fc1645bc273b1b8655285, type: 3}
   navMeshSurface: {fileID: 130903682}
+  worldMaterial: {fileID: 2100000, guid: 80f08a575963d604593fce982c9d8279, type: 2}
   terrainLayer:
     serializedVersion: 2
     m_Bits: 1024

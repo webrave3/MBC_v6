@@ -13,9 +13,10 @@ MonoBehaviour:
   m_Name: FungalJungle
   m_EditorClassIdentifier: Assembly-CSharp::AutoForge.World.BiomeSettings
   biomeName: FungalJungle
-  terrainMaterial: {fileID: 2100000, guid: 80f08a575963d604593fce982c9d8279, type: 2}
-  splatmapTextureIndex: 1
-  minTemperature: 0
-  maxTemperature: 0.5
-  minHumidity: 0.5
+  minTemperature: 0.5
+  maxTemperature: 0.9
+  minHumidity: 0.7
   maxHumidity: 1
+  terrainMaterial: {fileID: 2100000, guid: 80f08a575963d604593fce982c9d8279, type: 2}
+  splatColor: {r: 1, g: 1, b: 1, a: 1}
+  biomeGraphPosition: {x: 0.6, y: 0.9}

@@ -13,9 +13,10 @@ MonoBehaviour:
   m_Name: ScrapDesert
   m_EditorClassIdentifier: Assembly-CSharp::AutoForge.World.BiomeSettings
   biomeName: ScrapDesert
-  terrainMaterial: {fileID: 2100000, guid: 80f08a575963d604593fce982c9d8279, type: 2}
-  splatmapTextureIndex: 0
-  minTemperature: 0.5
+  minTemperature: 0.7
   maxTemperature: 1
   minHumidity: 0
-  maxHumidity: 0.5
+  maxHumidity: 0.3
+  terrainMaterial: {fileID: 2100000, guid: 80f08a575963d604593fce982c9d8279, type: 2}
+  splatColor: {r: 1, g: 1, b: 1, a: 1}
+  biomeGraphPosition: {x: 0.8, y: 0.2}

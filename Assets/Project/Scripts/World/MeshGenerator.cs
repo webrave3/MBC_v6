@@ -1,11 +1,9 @@
 // /Assets/Project/Scripts/World/MeshGenerator.cs
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace AutoForge.World
 {
-    /// <summary>
-    /// A simple data container for mesh components.
-    /// </summary>
     public struct MeshData
     {
         public Vector3[] vertices;
@@ -16,36 +14,42 @@ namespace AutoForge.World
 
     public static class MeshGenerator
     {
-        /// <summary>
-        /// Generates mesh data from a heightmap and splatmap (colors).
-        /// Includes fixes for triangle winding and vertex positioning at chunk boundaries.
-        /// </summary>
-        public static MeshData GenerateMesh(float[,] heightMap, Color[,] splatMap, int chunkSize, int chunkHeight)
-        {
-            int width = heightMap.GetLength(0);  // e.g., chunkResolution = 129
-            int height = heightMap.GetLength(1); // e.g., chunkResolution = 129
+        // --- ADD A FLAG FOR DEBUGGING ---
+        private static bool _logVertexColors = true; // Set to false to disable logging
+        private static HashSet<Vector2Int> _loggedChunks = new HashSet<Vector2Int>(); // Keep track of logged chunks per run
 
-            // Safety check for valid dimensions
+        public static MeshData GenerateMeshWithSplatting(
+            float[,] heightMap,
+            float[,] tempMap,
+            float[,] humidityMap,
+            float[,] buildZoneMask,
+            WorldSettings settings,
+            Vector2Int chunkCoord) // <-- Pass chunkCoord for logging context
+        {
+            int width = heightMap.GetLength(0);
+            int height = heightMap.GetLength(1);
+
+            // --- Log chunk generation once ---
+            bool logThisChunk = _logVertexColors && !_loggedChunks.Contains(chunkCoord);
+            if (logThisChunk)
+            {
+                Debug.Log($"--- Generating Mesh Colors for Chunk {chunkCoord} ---");
+            }
+            // --- End log chunk generation ---
+
+
             if (width <= 1 || height <= 1)
             {
-                Debug.LogError("[MeshGenerator] HeightMap dimensions too small! Cannot generate mesh.");
-                return new MeshData
-                { // Return empty data to avoid errors downstream
-                    vertices = new Vector3[0],
-                    triangles = new int[0],
-                    uvs = new Vector2[0],
-                    colors = new Color[0]
-                };
+                Debug.LogError($"[MeshGenerator] HeightMap dimensions ({width}x{height}) too small for Chunk {chunkCoord}! Cannot generate mesh.");
+                return new MeshData { vertices = new Vector3[0], triangles = new int[0], uvs = new Vector2[0], colors = new Color[0] };
             }
 
-            // Calculate spacing between vertices based on chunk size and resolution
-            // If width = 129, there are 128 segments. chunkSize / 128 = spacing.
-            float vertexSpacing = (float)chunkSize / (width - 1);
+            float vertexSpacing = (float)settings.chunkSize / (width - 1);
 
             MeshData meshData = new MeshData
             {
                 vertices = new Vector3[width * height],
-                triangles = new int[(width - 1) * (height - 1) * 6], // Triangles based on number of quads
+                triangles = new int[(width - 1) * (height - 1) * 6],
                 uvs = new Vector2[width * height],
                 colors = new Color[width * height]
             };
@@ -53,108 +57,190 @@ namespace AutoForge.World
             int triangleIndex = 0;
             int vertexIndex = 0;
 
-            for (int y = 0; y < height; y++) // Iterate through Z axis vertices
-            {
-                for (int x = 0; x < width; x++) // Iterate through X axis vertices
-                {
-                    // Get height from noise map (normalized 0-1) and scale by chunkHeight
-                    float yPos = heightMap[x, y] * chunkHeight;
+            // --- Define points to log ---
+            int centerX = width / 2;
+            int centerY = height / 2;
+            int midX = width / 4; // A point partway along X edge
+            // ---
 
-                    // --- VERTEX POSITION CALCULATION (Centered around Pivot) ---
-                    // Calculate local position relative to chunk's corner (0,0) based on index
+            for (int y = 0; y < height; y++)
+            {
+                for (int x = 0; x < width; x++)
+                {
+                    // --- 1. VERTEX POSITION ---
+                    float yPos = heightMap[x, y] * settings.chunkHeight;
                     float localX = x * vertexSpacing;
                     float localZ = y * vertexSpacing;
-
-                    // Shift position so the mesh is centered around the chunk GameObject's origin (pivot)
-                    // This helps ensure boundary vertices align correctly.
                     meshData.vertices[vertexIndex] = new Vector3(
-                        localX - (chunkSize / 2f), // Centered X
-                        yPos,                      // Height
-                        localZ - (chunkSize / 2f)  // Centered Z
-                    );
-                    // --- END VERTEX POSITION CALCULATION ---
+                        localX - (settings.chunkSize / 2f), yPos, localZ - (settings.chunkSize / 2f));
 
-                    // --- UV CALCULATION (Corrected 0-1 range) ---
-                    // Map vertex index (0 to width-1) to UV coordinate (0 to 1)
+                    // --- 2. UV CALCULATION ---
                     meshData.uvs[vertexIndex] = new Vector2(x / (float)(width - 1), y / (float)(height - 1));
-                    // --- END UV CALCULATION ---
 
-                    // Assign vertex color for splatmap shader
-                    meshData.colors[vertexIndex] = splatMap[x, y];
+                    // --- 3. CALCULATE BIOME WEIGHTS ---
+                    float currentTemp = tempMap[x, y];
+                    float currentHumidity = humidityMap[x, y];
+                    // Safety check for WorldManager instance
+                    Vector4 biomeWeights = Vector4.zero;
+                    if (WorldManager.Instance != null)
+                    {
+                        biomeWeights = WorldManager.Instance.GetBiomeWeights(currentTemp, currentHumidity);
+                    }
+                    else
+                    {
+                        // This shouldn't happen if initialization order is correct
+                        if (logThisChunk && vertexIndex == 0) Debug.LogError($"[MeshGenerator Chunk {chunkCoord}] WorldManager.Instance is NULL when getting biome weights!");
+                    }
 
-                    // --- TRIANGLE GENERATION ---
-                    // Only create triangles if we are not at the last row or column
+
+                    // --- 4. CALCULATE SLOPE WEIGHT ---
+                    // Using scaled heights for slope calculation
+                    float heightSelf = heightMap[x, y] * settings.chunkHeight; // Central point height
+                    float heightN = heightMap[x, Mathf.Clamp(y + 1, 0, height - 1)] * settings.chunkHeight;
+                    float heightS = heightMap[x, Mathf.Clamp(y - 1, 0, height - 1)] * settings.chunkHeight;
+                    float heightE = heightMap[Mathf.Clamp(x + 1, 0, width - 1), y] * settings.chunkHeight;
+                    float heightW = heightMap[Mathf.Clamp(x - 1, 0, width - 1), y] * settings.chunkHeight;
+
+                    // Calculate gradient using world-space distance (vertexSpacing)
+                    // Difference over 2 * spacing distance
+                    float dX = (heightE - heightW) / (2f * vertexSpacing);
+                    float dZ = (heightN - heightS) / (2f * vertexSpacing);
+
+                    // Calculate normal vector (approximation using gradient)
+                    Vector3 normal = new Vector3(-dX, 1, -dZ).normalized;
+
+                    // Steepness (0=flat, 1=vertical)
+                    float slopeSteepness = 1.0f - Mathf.Clamp01(normal.y);
+
+                    // Calculate rock weight based on slope
+                    float rockWeight = Mathf.InverseLerp(settings.slopeBlendStart, settings.slopeBlendEnd, slopeSteepness);
+                    rockWeight = Mathf.Clamp01(rockWeight);
+
+                    // --- 5. NORMALIZE WEIGHTS AND ASSIGN COLOR ---
+                    float r = biomeWeights.x;
+                    float g = biomeWeights.y;
+                    float b = biomeWeights.z;
+
+                    float biomeSum = r + g + b;
+                    if (biomeSum > 0.001f)
+                    {
+                        float rebalance = (1.0f - rockWeight) / biomeSum;
+                        r *= rebalance;
+                        g *= rebalance;
+                        b *= rebalance;
+                    }
+                    else if (settings?.biomes != null && settings.biomes.Length > 0 && settings.biomes[0] != null) // Failsafe if no other biome matches
+                    {
+                        r = 1.0f - rockWeight; // Assign remaining weight to the first biome
+                        g = 0; b = 0;
+                    }
+                    else
+                    { // Ultimate failsafe
+                        r = 1.0f - rockWeight; g = 0; b = 0;
+                    }
+
+                    // --- DEBUG LOGGING for specific vertices ---
+                    if (logThisChunk)
+                    {
+                        bool logThisVertex = false;
+                        string pointLabel = "";
+
+                        if (x == 0 && y == 0) { logThisVertex = true; pointLabel = "Corner(0,0)"; }
+                        else if (x == centerX && y == centerY) { logThisVertex = true; pointLabel = "Center"; }
+                        else if (x == midX && y == 0) { logThisVertex = true; pointLabel = "Mid-Edge"; }
+
+                        if (logThisVertex)
+                        {
+                            Color finalColor = new Color(r, g, b, rockWeight);
+                            Debug.Log($"  Vertex {pointLabel}({x},{y}):\n" +
+                                      $"    Height={yPos:F2}, Temp={currentTemp:F2}, Hum={currentHumidity:F2}\n" +
+                                      $"    Neighbours (N,S,E,W): {heightN:F2}, {heightS:F2}, {heightE:F2}, {heightW:F2}\n" +
+                                      $"    dX={dX:F3}, dZ={dZ:F3}, Normal={normal.ToString("F3")}, Steepness={slopeSteepness:F3}\n" +
+                                      $"    Slope Blend Range=({settings.slopeBlendStart:F2} - {settings.slopeBlendEnd:F2})\n" +
+                                      $"    BiomeWeights Raw={biomeWeights.ToString("F2")}\n" +
+                                      $"    RockWeight={rockWeight:F3}\n" +
+                                      $"    BiomeSum={biomeSum:F3}, Rebalance={(biomeSum > 0.001f ? ((1.0f - rockWeight) / biomeSum) : 0):F3}\n" +
+                                      $"    Final Color=({finalColor.r:F2}, {finalColor.g:F2}, {finalColor.b:F2}, {finalColor.a:F2})");
+                        }
+                    }
+                    // --- END DEBUG LOGGING ---
+
+                    meshData.colors[vertexIndex] = new Color(r, g, b, rockWeight);
+
+
+                    // --- 6. TRIANGLE GENERATION ---
                     if (x < width - 1 && y < height - 1)
                     {
-                        // Get indices of the four corners of the current quad
-                        int topLeft = vertexIndex;               // Current vertex (x, y)
-                        int topRight = vertexIndex + 1;           // Vertex to the right (x+1, y)
-                        int bottomLeft = vertexIndex + width;       // Vertex below (x, y+1)
-                        int bottomRight = vertexIndex + width + 1;   // Vertex diagonal (x+1, y+1)
+                        int topLeft = vertexIndex;
+                        int topRight = vertexIndex + 1;
+                        int bottomLeft = vertexIndex + width;
+                        int bottomRight = vertexIndex + width + 1;
 
-                        // --- CORRECTED TRIANGLE WINDING ORDER ---
-                        // Creates two triangles for the quad using counter-clockwise winding (standard for Unity)
-
-                        // Triangle 1: Top-Left -> Bottom-Left -> Top-Right
                         meshData.triangles[triangleIndex + 0] = topLeft;
                         meshData.triangles[triangleIndex + 1] = bottomLeft;
                         meshData.triangles[triangleIndex + 2] = topRight;
-
-                        // Triangle 2: Top-Right -> Bottom-Left -> Bottom-Right
                         meshData.triangles[triangleIndex + 3] = topRight;
                         meshData.triangles[triangleIndex + 4] = bottomLeft;
                         meshData.triangles[triangleIndex + 5] = bottomRight;
-                        // --- END TRIANGLE WINDING ORDER ---
-
-                        triangleIndex += 6; // Move to the next pair of triangles
+                        triangleIndex += 6;
                     }
-                    vertexIndex++; // Move to the next vertex index
+                    vertexIndex++;
                 }
             }
-            return meshData; // Return the completed mesh data container
+
+            // --- Mark chunk as logged for this run ---
+            if (logThisChunk)
+            {
+                _loggedChunks.Add(chunkCoord);
+                Debug.Log($"--- Finished Logging Mesh Colors for Chunk {chunkCoord} ---");
+            }
+            // Add chunk coord to prevent re-logging if Regenerate is called.
+            // You might want to clear _loggedChunks at the start of Play mode if needed.
+            // static HashSet<Vector2Int> _loggedChunks = new HashSet<Vector2Int>();
+            // Add this near top of class, outside method.
+
+            return meshData;
         }
 
-        /// <summary>
-        /// Applies the generated MeshData to actual Mesh components.
-        /// Includes physics fix by toggling collider enabled state.
-        /// </summary>
+        // --- ADD A METHOD TO CLEAR LOGGED CHUNKS (Optional) ---
+        // Call this from WorldManager.Awake() or Start() if you want fresh logs each play session
+        public static void ClearLoggedChunks()
+        {
+            _loggedChunks.Clear();
+            Debug.Log("[MeshGenerator] Cleared logged chunk list.");
+        }
+        // --- END OPTIONAL METHOD ---
+
+
         public static void ApplyToMesh(Mesh mesh, MeshCollider meshCollider, MeshData meshData)
         {
-            // --- Safety Check: Ensure meshData is valid ---
+            // (Keep the ApplyToMesh method exactly as provided before)
             if (meshData.vertices == null || meshData.vertices.Length == 0 ||
-                meshData.triangles == null || meshData.triangles.Length == 0)
+               meshData.triangles == null || meshData.triangles.Length == 0)
             {
                 Debug.LogWarning($"<color=yellow>[MeshGenerator Warning]</color> Attempted to apply mesh with zero vertices or triangles to {meshCollider?.gameObject.name ?? "Unknown Object"}. Skipping mesh update.");
-                // Optionally clear the existing mesh to prevent rendering artifacts
-                // mesh.Clear();
-                // if (meshCollider != null) meshCollider.sharedMesh = null;
-                return; // Stop execution if data is invalid
+                return;
             }
 
-            // --- Apply Mesh Data ---
-            mesh.Clear(); // Clear previous mesh data
+            mesh.Clear();
             mesh.vertices = meshData.vertices;
             mesh.triangles = meshData.triangles;
             mesh.uv = meshData.uvs;
-            mesh.colors = meshData.colors; // For splatmap shader
+            mesh.colors = meshData.colors;
 
-            mesh.RecalculateNormals(); // Calculate lighting normals based on triangles
-            mesh.RecalculateBounds(); // Calculate bounding box for rendering culling
+            mesh.RecalculateNormals();
+            mesh.RecalculateBounds();
 
-            // --- Apply to Physics Collider (Bulletproof Fix) ---
             if (meshCollider == null)
             {
                 Debug.LogError($"<color=red><b>[MeshGenerator ERROR]</b></color> MeshCollider is NULL on GameObject using mesh '{mesh.name}'. Cannot apply physics mesh.");
                 return;
             }
 
-            meshCollider.enabled = false; // Disable collider to clear old physics state
-            meshCollider.sharedMesh = null; // Explicitly clear reference to old mesh
-            meshCollider.sharedMesh = mesh; // Assign the newly generated mesh
-            meshCollider.enabled = true; // Re-enable collider to force physics update
-
-            // Non-spammy success log (keep commented unless needed for deep debugging)
-            // Debug.Log($"<color=lime>[MeshGenerator]</color> SUCCESS: Applied mesh and toggled collider on {meshCollider.gameObject.name}. Verts: {meshData.vertices.Length}, Tris: {meshData.triangles.Length}");
+            meshCollider.enabled = false;
+            meshCollider.sharedMesh = null;
+            meshCollider.sharedMesh = mesh;
+            meshCollider.enabled = true;
         }
     }
 }

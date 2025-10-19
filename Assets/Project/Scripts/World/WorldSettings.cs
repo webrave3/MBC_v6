@@ -1,6 +1,7 @@
 // /Assets/Project/Scripts/World/WorldSettings.cs
+
 using UnityEngine;
-using AutoForge.World; // <-- ADD THIS NAMESPACE
+using AutoForge.World; // <-- Keep your namespace
 
 [CreateAssetMenu(fileName = "NewWorldSettings", menuName = "AutoForge/World Settings")]
 public class WorldSettings : ScriptableObject
@@ -12,7 +13,8 @@ public class WorldSettings : ScriptableObject
 
     // How many vertices per chunk edge (e.g., 101 for a 100x100 unit chunk)
     // Higher = more detail, lower = better performance.
-    [Tooltip("Vertices per chunk edge. 101 is a good default for a 100-size chunk.")]
+    [Tooltip("Vertices per chunk edge. Must be >= 2. 101 is a good default for a 100-size chunk.")]
+    [Min(2)]
     public int chunkResolution = 101;
 
     [Header("Prefabs")]
@@ -37,13 +39,25 @@ public class WorldSettings : ScriptableObject
     [Range(0f, 1f)]
     public float buildZoneFlattenStrength = 0.8f;
 
+    // --- NEW TEXTURING SECTION ---
+    [Header("Texturing")]
+    [Range(0, 1)]
+    [Tooltip("Normalized slope steepness (0=flat, 1=vertical) to begin blending the 4th (Alpha/Rock) texture.")]
+    public float slopeBlendStart = 0.2f;
+
+    [Range(0, 1)]
+    [Tooltip("Normalized slope steepness (0=flat, 1=vertical) to be 100% 4th (Alpha/Rock) texture.")]
+    public float slopeBlendEnd = 0.5f;
+    // --- END OF NEW SECTION ---
+
     /// <summary>
-    /// Finds the correct biome based on temp/humidity rules.
+    /// Finds the correct biome based on temp/humidity rules. (Used for dominant biome or other logic if needed)
     /// </summary>
     public BiomeSettings GetBiome(float temperature, float humidity)
     {
         foreach (var biome in biomes)
         {
+            if (biome == null) continue; // Safety check
             if (biome.IsMatch(temperature, humidity))
             {
                 return biome;

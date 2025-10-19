@@ -6,48 +6,46 @@ namespace AutoForge.World
     [CreateAssetMenu(fileName = "NewBiomeSettings", menuName = "AutoForge/Biome Settings")]
     public class BiomeSettings : ScriptableObject
     {
-        [Header("Biome Identity")]
-        public string biomeName;
+        [Header("Identification")]
+        public string biomeName = "Unnamed Biome";
 
-        // The material MUST use a shader that supports texture splatting
-        // (e.g., using Vertex Colors).
-        public Material terrainMaterial;
-
-        // The 'channel' this biome will paint on the splatmap (vertex colors).
-        // 0 = R, 1 = G, 2 = B, 3 = A
-        [Range(0, 3)]
-        public int splatmapTextureIndex;
-
-        [Header("Rules")]
-        [Range(0f, 1f)]
+        [Header("Conditions")]
+        [Tooltip("Minimum temperature (inclusive) for this biome.")]
         public float minTemperature = 0f;
-
-        [Range(0f, 1f)]
+        [Tooltip("Maximum temperature (exclusive) for this biome.")]
         public float maxTemperature = 1f;
-
-        [Range(0f, 1f)]
+        [Tooltip("Minimum humidity (inclusive) for this biome.")]
         public float minHumidity = 0f;
-
-        [Range(0f, 1f)]
+        [Tooltip("Maximum humidity (exclusive) for this biome.")]
         public float maxHumidity = 1f;
 
+        [Header("Rendering")]
+        [Tooltip("The primary material used for rendering chunks in this biome (Legacy - Now uses WorldManager's material).")]
+        public Material terrainMaterial; // You can keep this for potential non-splatmap uses or phase it out.
+
+        [Tooltip("The color tint or weight used if generating a simple splatmap texture (Legacy).")]
+        public Color splatColor = Color.white;
+
+        // --- ADD THIS LINE ---
+        [Header("Splatmap Blending")]
+        [Tooltip("The 'center' point of this biome in the Temp/Humidity graph (X=Temp, Y=Humidity) used for smooth blending.")]
+        public Vector2 biomeGraphPosition = Vector2.one * 0.5f; // Default to center
+
         /// <summary>
-        /// Checks if a given temperature and humidity fall within this biome's rules.
+        /// Checks if a given temperature and humidity fall within this biome's range.
         /// </summary>
         public bool IsMatch(float temperature, float humidity)
         {
-            return temperature >= minTemperature && temperature <= maxTemperature &&
-                   humidity >= minHumidity && humidity <= maxHumidity;
+            return temperature >= minTemperature && temperature < maxTemperature &&
+                   humidity >= minHumidity && humidity < maxHumidity;
         }
 
         /// <summary>
-        /// Gets the vertex color (splatmap weight) for this biome.
+        /// Returns the color associated with this biome for splatmap generation (Legacy).
         /// </summary>
         public Color GetSplatColor()
         {
-            Color color = Color.black;
-            color[splatmapTextureIndex] = 1f;
-            return color;
+            return splatColor;
         }
     }
 }
