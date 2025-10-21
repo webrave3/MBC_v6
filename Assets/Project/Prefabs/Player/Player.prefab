@@ -1833,7 +1833,7 @@ MonoBehaviour:
   - {fileID: 8300000, guid: a3194b8bbc96ef84fab1f98f4b7dae3e, type: 3}
   FootstepAudioVolume: 0.123
   JumpHeight: 8
-  Gravity: -30
+  Gravity: -50
   JumpTimeout: 0.3
   FallTimeout: 0.15
   DashSpeed: 20
