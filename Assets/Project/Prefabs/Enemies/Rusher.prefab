@@ -18,7 +18,7 @@ GameObject:
   - component: {fileID: 1900863033342009535}
   - component: {fileID: -1624720807607456522}
   m_Layer: 6
-  m_Name: Grunt
+  m_Name: Rusher
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -72,7 +72,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 11dbc2e81aa8dfc4eab7f6bdfa8c12c3, type: 2}
+  - {fileID: 2100000, guid: 79711fa8faec75f48b0feef9240a68a4, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -130,10 +130,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0faff0e2792332e40b0f1a7a812da623, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AutoForge.Enemy
-  enemyData: {fileID: 11400000, guid: 19b4e6565e4ea4545aefa790f09d4a40, type: 2}
+  enemyData: {fileID: 11400000, guid: 342411dfe63030648b0a0db4d8f4b9d0, type: 2}
   resourcePickupPrefab: {fileID: 5178923652191353588, guid: 7d89fa9cc954c9d418a212fdd41c95b0, type: 3}
   lootDropType: {fileID: 11400000, guid: 233afb50ab6c485409801808b58c4247, type: 2}
-  lootAmount: 25
+  lootAmount: 50
   healthTextPrefab: {fileID: 8318689894986052360, guid: 436b9d5b8125c6d42981a855a1d8f93e, type: 3}
   damageTextPrefab: {fileID: 8318689894986052360, guid: 700a0c79afe59754b9644a82131814a4, type: 3}
   healthTextOffset: {x: 0, y: 2.5, z: 0}
@@ -173,10 +173,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7188b49b0e0f8934d90e585cdd251316, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AutoForge.EnemyMovement
-  initialPlayerTargetChance: 10
-  aggroChanceOnHit: 80
-  playerDeaggroDistance: 15
-  moveSpeed: 5
+  initialPlayerTargetChance: 90
+  aggroChanceOnHit: 90
+  playerDeaggroDistance: 25
+  moveSpeed: 10
 --- !u!54 &1900863033342009535
 Rigidbody:
   m_ObjectHideFlags: 0

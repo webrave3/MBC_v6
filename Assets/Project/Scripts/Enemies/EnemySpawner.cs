@@ -1,33 +1,34 @@
 // /Assets/Project/Scripts/Enemies/EnemySpawner.cs
 using UnityEngine;
-using AutoForge.World; // <-- ADD THIS NAMESPACE
+using AutoForge.World;
+using System.Collections.Generic; // <-- ADDED THIS NAMESPACE
 
 namespace AutoForge.Core
 {
     /// <summary>
-    /// A simple script that spawns a given prefab at a regular interval.
+    /// A simple script that spawns a random prefab from a list at a regular interval.
     /// Waits for the initial world to generate before starting.
     /// </summary>
     public class EnemySpawner : MonoBehaviour
     {
         [Header("Spawner Settings")]
-        public GameObject enemyPrefab; // The enemy to spawn
+        // --- MODIFIED THIS ---
+        [Tooltip("A list of enemy prefabs this spawner can choose from.")]
+        public List<GameObject> enemyPrefabs; // The enemies to spawn
+        // --- END MODIFY ---
+
         public float spawnInterval = 5f; // Time between spawns
 
-        // --- ADD THIS ---
         [Tooltip("Offset from the terrain surface to prevent spawning underground.")]
         public float spawnHeightOffset = 0.1f;
-        // --- END ADD ---
 
         void Start()
         {
-            // Check if the prefab is assigned to prevent errors.
-            if (enemyPrefab != null)
+            // Check if the prefab list is assigned and has enemies.
+            // --- MODIFIED THIS ---
+            if (enemyPrefabs != null && enemyPrefabs.Count > 0)
+            // --- END MODIFY ---
             {
-                // --- REMOVE THIS LINE ---
-                // InvokeRepeating(nameof(SpawnEnemy), 2f, spawnInterval);
-
-                // --- ADD THIS LOGIC ---
                 // Wait for the world to be generated before starting to spawn
                 if (WorldManager.Instance != null)
                 {
@@ -37,15 +38,15 @@ namespace AutoForge.Core
                 {
                     Debug.LogError("<color=red>[EnemySpawner ERROR]</color> WorldManager.Instance is null! Cannot subscribe to world generation event.", this);
                 }
-                // --- END ADD ---
             }
             else
             {
-                Debug.LogError("Enemy Prefab not assigned to the spawner!", this);
+                // --- MODIFIED THIS ---
+                Debug.LogError("Enemy Prefabs list not assigned or is empty!", this);
+                // --- END MODIFY ---
             }
         }
 
-        // --- ADD THIS METHOD ---
         private void OnDestroy()
         {
             // Ensure we unsubscribe if this object is destroyed
@@ -55,7 +56,6 @@ namespace AutoForge.Core
             }
         }
 
-        // --- ADD THIS METHOD ---
         private void StartSpawning()
         {
             // Unsubscribe immediately
@@ -67,11 +67,9 @@ namespace AutoForge.Core
             // Now that the world is generated, we can safely start spawning
             InvokeRepeating(nameof(SpawnEnemy), 2f, spawnInterval);
         }
-        // --- END ADD ---
 
         void SpawnEnemy()
         {
-            // --- ADD THIS LOGIC ---
             // Get a safe spawn position at this spawner's (x, z) location
             if (WorldManager.Instance == null)
             {
@@ -81,11 +79,21 @@ namespace AutoForge.Core
 
             Vector3 safeSpawnPos = WorldManager.Instance.GetSafeSpawnPosition(transform.position);
             safeSpawnPos.y += spawnHeightOffset; // Apply offset
-            // --- END ADD ---
 
-            // --- MODIFY THIS LINE ---
-            // Create a new instance of the enemy prefab at the corrected safe position
-            Instantiate(enemyPrefab, safeSpawnPos, transform.rotation);
+            // --- MODIFIED THIS LOGIC ---
+
+            // Failsafe check in case the list is empty
+            if (enemyPrefabs == null || enemyPrefabs.Count == 0)
+            {
+                return;
+            }
+
+            // 1. Pick a random enemy prefab from the list
+            GameObject prefabToSpawn = enemyPrefabs[Random.Range(0, enemyPrefabs.Count)];
+
+            // 2. Create a new instance of the chosen prefab at the corrected safe position
+            Instantiate(prefabToSpawn, safeSpawnPos, transform.rotation);
+            // --- END MODIFY ---
         }
     }
 }

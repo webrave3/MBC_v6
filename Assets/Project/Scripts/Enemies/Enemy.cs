@@ -1,6 +1,8 @@
+// /Assets/Project/Scripts/Enemies/Enemy.cs
 using UnityEngine;
 using AutoForge.Core;
 using TMPro; // Required for TextMeshPro UI elements
+using System.Collections; // <-- ADD THIS
 
 namespace AutoForge.Enemies
 {
@@ -21,6 +23,17 @@ namespace AutoForge.Enemies
         [SerializeField] private GameObject damageTextPrefab;
         [SerializeField] private Vector3 healthTextOffset = new Vector3(0, 2.5f, 0);
 
+        // --- ADD THIS SECTION ---
+        [Header("Feedback")]
+        [Tooltip("The main Renderer for the enemy's body to flash white.")]
+        [SerializeField] private Renderer enemyRenderer;
+        [Tooltip("How long the hit flash should last.")]
+        [SerializeField] private float hitFlashDuration = 0.1f;
+
+        private MaterialPropertyBlock _propBlock;
+        private Coroutine _flashCoroutine;
+        // --- END ADD ---
+
         private TextMeshProUGUI healthText;
         private Transform mainCameraTransform;
         private float currentHealth;
@@ -31,6 +44,20 @@ namespace AutoForge.Enemies
         {
             rb = GetComponent<Rigidbody>();
             _enemyMovement = GetComponent<EnemyMovement>(); // Get the movement script
+
+            // --- ADD THIS SECTION ---
+            _propBlock = new MaterialPropertyBlock();
+
+            // As a fallback, try to find the renderer in children if not assigned
+            if (enemyRenderer == null)
+            {
+                enemyRenderer = GetComponentInChildren<Renderer>();
+                if (enemyRenderer == null)
+                {
+                    Debug.LogError("No Renderer found on enemy or in children. Hit flash will not work.", this);
+                }
+            }
+            // --- END ADD ---
         }
 
         void Start()
@@ -93,11 +120,45 @@ namespace AutoForge.Enemies
                 rb.AddForce(hitDirection * force, ForceMode.Impulse);
             }
 
+            // --- ADD THIS SECTION ---
+            // Trigger the hit flash feedback
+            if (enemyRenderer != null)
+            {
+                // Stop any previous flash coroutine to reset the timer
+                if (_flashCoroutine != null)
+                {
+                    StopCoroutine(_flashCoroutine);
+                }
+                _flashCoroutine = StartCoroutine(HitFlashCoroutine());
+            }
+            // --- END ADD ---
+
             if (currentHealth <= 0f)
             {
                 Die();
             }
         }
+
+        // --- ADD THIS METHOD ---
+        /// <summary>
+        /// Coroutine that applies a white color override, waits, and then clears it.
+        /// </summary>
+        private IEnumerator HitFlashCoroutine()
+        {
+            // Apply the override
+            enemyRenderer.GetPropertyBlock(_propBlock);
+            _propBlock.SetColor("_BaseColor", Color.white); // _BaseColor is the URP Lit/Unlit color property
+            enemyRenderer.SetPropertyBlock(_propBlock);
+
+            // Wait for the flash duration
+            yield return new WaitForSeconds(hitFlashDuration);
+
+            // Clear the override, returning to the material's original color
+            enemyRenderer.SetPropertyBlock(null);
+
+            _flashCoroutine = null; // Mark as finished
+        }
+        // --- END ADD ---
 
         private void UpdateHealthUI()
         {
@@ -131,4 +192,3 @@ namespace AutoForge.Enemies
         }
     }
 }
-

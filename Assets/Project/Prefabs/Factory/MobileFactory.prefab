@@ -85,8 +85,8 @@ Rigidbody:
     m_Bits: 0
   m_ImplicitCom: 1
   m_ImplicitTensor: 1
-  m_UseGravity: 1
-  m_IsKinematic: 1
+  m_UseGravity: 0
+  m_IsKinematic: 0
   m_Interpolate: 0
   m_Constraints: 0
   m_CollisionDetection: 1
@@ -105,11 +105,12 @@ MonoBehaviour:
   stoppingDistance: 5
   activationDistance: 7
   hoverHeight: 2
-  hoverForce: 30
+  hoverForce: 25
   hoverDamp: 5
   moveForce: 100
-  rotationSpeed: 25
-  bobFrequency: 4
+  rotationSpeed: 50
+  groundCheckDistance: 5
+  bobFrequency: 3
   bobAmplitude: 1.5
   tiltAngle: 50
   tiltSpeed: 10
@@ -318,6 +319,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     m_RemovedComponents:
     - {fileID: 2302625166021880692, guid: 54301c926a8afb74590aac87245f9d40, type: 3}
+    - {fileID: -2452434708050050082, guid: 54301c926a8afb74590aac87245f9d40, type: 3}
     m_RemovedGameObjects:
     - {fileID: 4827663335072896012, guid: 54301c926a8afb74590aac87245f9d40, type: 3}
     - {fileID: 2987512737378759469, guid: 54301c926a8afb74590aac87245f9d40, type: 3}
@@ -514,6 +516,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     m_RemovedComponents:
     - {fileID: 2302625166021880692, guid: 54301c926a8afb74590aac87245f9d40, type: 3}
+    - {fileID: -2452434708050050082, guid: 54301c926a8afb74590aac87245f9d40, type: 3}
     m_RemovedGameObjects:
     - {fileID: 4827663335072896012, guid: 54301c926a8afb74590aac87245f9d40, type: 3}
     - {fileID: 3436273019427253504, guid: 54301c926a8afb74590aac87245f9d40, type: 3}
@@ -627,6 +630,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     m_RemovedComponents:
     - {fileID: 2302625166021880692, guid: 54301c926a8afb74590aac87245f9d40, type: 3}
+    - {fileID: -2452434708050050082, guid: 54301c926a8afb74590aac87245f9d40, type: 3}
     m_RemovedGameObjects:
     - {fileID: 3436273019427253504, guid: 54301c926a8afb74590aac87245f9d40, type: 3}
     m_AddedGameObjects: []
@@ -739,6 +743,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     m_RemovedComponents:
     - {fileID: 2302625166021880692, guid: 54301c926a8afb74590aac87245f9d40, type: 3}
+    - {fileID: -2452434708050050082, guid: 54301c926a8afb74590aac87245f9d40, type: 3}
     m_RemovedGameObjects:
     - {fileID: 2987512737378759469, guid: 54301c926a8afb74590aac87245f9d40, type: 3}
     m_AddedGameObjects: []

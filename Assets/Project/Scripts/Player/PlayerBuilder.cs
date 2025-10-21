@@ -126,18 +126,18 @@ namespace AutoForge.Player
                 ResourceManager.Instance.SpendResource(currentBuildingData.costType, currentBuildingData.costAmount);
                 if (isPlacingFactoryTile)
                 {
-                    if (lastHitSocket == null || FactoryManager.Instance?.MobileFactory == null) return;
+                    if (lastHitSocket == null || FactoryManager.Instance?.PlayerFactory == null) return;
                     GameObject newTile = Instantiate(currentBuildingData.buildingPrefab, buildPreview.transform.position, buildPreview.transform.rotation);
-                    newTile.transform.SetParent(FactoryManager.Instance.MobileFactory.transform, true);
+                    newTile.transform.SetParent(FactoryManager.Instance.PlayerFactory.transform, true);
                     lastHitSocket.gameObject.SetActive(false);
-                    FactoryManager.Instance.MobileFactory.GetComponent<FactoryNavMeshUpdater>().UpdateNavMesh();
+                    FactoryManager.Instance.PlayerFactory.GetComponent<FactoryNavMeshUpdater>().UpdateNavMesh();
                 }
                 else
                 {
                     GameObject newBuilding = Instantiate(currentBuildingData.buildingPrefab, buildPreview.transform.position, buildPreview.transform.rotation);
-                    if (FactoryManager.Instance?.MobileFactory != null)
+                    if (FactoryManager.Instance?.PlayerFactory != null)
                     {
-                        newBuilding.transform.SetParent(FactoryManager.Instance.MobileFactory.transform, true);
+                        newBuilding.transform.SetParent(FactoryManager.Instance.PlayerFactory.transform, true);
                     }
                 }
             }
@@ -181,9 +181,9 @@ namespace AutoForge.Player
                     Vector3 direction = (bestSocket.position - parentPart.position).normalized;
                     Vector3 targetPosition = parentPart.position + (direction * tileSize);
 
-                    if (FactoryManager.Instance?.MobileFactory != null)
+                    if (FactoryManager.Instance?.PlayerFactory != null)
                     {
-                        targetPosition.y = FactoryManager.Instance.MobileFactory.transform.position.y;
+                        targetPosition.y = FactoryManager.Instance.PlayerFactory.transform.position.y;
                     }
 
                     buildPreview.transform.position = targetPosition;
@@ -285,12 +285,12 @@ namespace AutoForge.Player
             Transform bestSocket = null;
             float bestScore = -1f;
 
-            if (FactoryManager.Instance?.MobileFactory == null) return null;
+            if (FactoryManager.Instance?.PlayerFactory == null) return null;
 
             Vector3 playerPos = transform.position;
             Vector3 playerLookDir = mainCamera.transform.forward;
 
-            var allSockets = FactoryManager.Instance.MobileFactory.GetComponentsInChildren<Socket>();
+            var allSockets = FactoryManager.Instance.PlayerFactory.GetComponentsInChildren<Socket>();
 
             foreach (var socket in allSockets)
             {

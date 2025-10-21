@@ -2150,7 +2150,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 7556636659251310684, guid: bdf16e61298fc1645bc273b1b8655285, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 25
+      value: 30
       objectReference: {fileID: 0}
     - target: {fileID: 7556636659251310684, guid: bdf16e61298fc1645bc273b1b8655285, type: 3}
       propertyPath: m_LocalPosition.z
@@ -2383,8 +2383,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: bb0c57f80542c794686d22211ee1f21f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AutoForge.Core.EnemySpawner
-  enemyPrefab: {fileID: 6073925524709711139, guid: d5ba1158a04866a43a092fa0b24b863c, type: 3}
-  spawnInterval: 2
+  enemyPrefabs:
+  - {fileID: 6073925524709711139, guid: d5ba1158a04866a43a092fa0b24b863c, type: 3}
+  - {fileID: 6073925524709711139, guid: 54cffa9889c573b44aa37fef0a95f539, type: 3}
+  spawnInterval: 5
   spawnHeightOffset: 0.1
 --- !u!4 &1189064296 stripped
 Transform:
