@@ -1,14 +1,9 @@
-// /Assets/Project/Scripts/Core/FactoryManager.cs
 using UnityEngine;
-using System.Collections.Generic; // Required for List
-using AutoForge.Factory; // <-- ADD THIS to recognize the MobileFactory type in its namespace
+using System.Collections.Generic;
+using AutoForge.Factory; // Namespace for MobileFactory
 
-namespace AutoForge.Core // Assuming FactoryManager is in the Core namespace
+namespace AutoForge.Core
 {
-    /// <summary>
-    /// Manages the player's mobile factory instance.
-    /// Provides a central point of access (Singleton).
-    /// </summary>
     public class FactoryManager : MonoBehaviour
     {
         // --- Singleton Pattern ---
@@ -24,7 +19,7 @@ namespace AutoForge.Core // Assuming FactoryManager is in the Core namespace
                     {
                         GameObject singletonObject = new GameObject("FactoryManager");
                         _instance = singletonObject.AddComponent<FactoryManager>();
-                        Debug.LogWarning("FactoryManager instance was not found in the scene. Created one.");
+                        Debug.LogWarning("FactoryManager instance was not found. Created one.");
                     }
                 }
                 return _instance;
@@ -32,50 +27,42 @@ namespace AutoForge.Core // Assuming FactoryManager is in the Core namespace
         }
         // --- End Singleton ---
 
-        [Header("Factory References")]
-        [Tooltip("Direct reference to the player's Mobile Factory instance in the scene.")]
-        // We will manage this via registration instead of direct assignment if multiple factories could exist
-        // public MobileFactory playerFactory; // Commented out - using the list below
-
         // --- Use a List to track registered factories ---
-        // This is more flexible if you ever have more than one (e.g., enemy factories later)
+        // **** USES MobileFactory TYPE ****
         private List<MobileFactory> activeFactories = new List<MobileFactory>();
 
-        // --- Property to easily get the primary player factory (assuming only one for now) ---
+        // --- Property to easily get the primary player factory ---
+        // **** USES MobileFactory TYPE ****
         public MobileFactory PlayerFactory
         {
             get
             {
                 if (activeFactories.Count > 0)
                 {
-                    return activeFactories[0]; // Return the first registered factory as the player's
+                    return activeFactories[0]; // Return the first registered factory
                 }
                 return null; // No factory registered
             }
         }
-
 
         private void Awake()
         {
             // --- Singleton Enforcement ---
             if (_instance != null && _instance != this)
             {
-                Debug.LogWarning("Duplicate FactoryManager instance found. Destroying self.", this.gameObject);
-                Destroy(this.gameObject);
+                Debug.LogWarning("Duplicate FactoryManager. Destroying self.", gameObject);
+                Destroy(gameObject);
                 return;
             }
             _instance = this;
-            // Optional: Keep the manager alive across scene loads if needed
-            // DontDestroyOnLoad(this.gameObject);
-            // --- End Singleton ---
+            // DontDestroyOnLoad(gameObject); // Optional
         }
 
         /// <summary>
-        /// Registers a MobileFactory instance with the manager.
-        /// Called by MobileFactory in its Awake() method.
+        /// Registers a MobileFactory instance.
         /// </summary>
-        /// <param name="factoryToAdd">The MobileFactory instance to register.</param>
-        public void RegisterFactory(MobileFactory factoryToAdd) // Parameter type uses the namespace
+        // **** ACCEPTS MobileFactory TYPE ****
+        public void RegisterFactory(MobileFactory factoryToAdd)
         {
             if (factoryToAdd == null)
             {
@@ -87,11 +74,6 @@ namespace AutoForge.Core // Assuming FactoryManager is in the Core namespace
             {
                 activeFactories.Add(factoryToAdd);
                 Debug.Log($"<color=green>[FactoryManager]</color> Registered factory: {factoryToAdd.name}", factoryToAdd);
-
-                // Optional: If you only ever want one player factory, enforce it
-                // if (activeFactories.Count > 1) {
-                //     Debug.LogWarning("[FactoryManager] More than one MobileFactory registered. This might indicate an issue if only one player factory is expected.", this);
-                // }
             }
             else
             {
@@ -100,46 +82,28 @@ namespace AutoForge.Core // Assuming FactoryManager is in the Core namespace
         }
 
         /// <summary>
-        /// Unregisters a MobileFactory instance from the manager.
-        /// Called by MobileFactory in its OnDestroy() method.
+        /// Unregisters a MobileFactory instance.
+        /// Should be called from MobileFactory's OnDestroy method.
         /// </summary>
-        /// <param name="factoryToRemove">The MobileFactory instance to unregister.</param>
-        public void UnregisterFactory(MobileFactory factoryToRemove) // Parameter type uses the namespace
+        // **** ACCEPTS MobileFactory TYPE ****
+        public void UnregisterFactory(MobileFactory factoryToRemove)
         {
-            if (factoryToRemove == null)
-            {
-                Debug.LogWarning("[FactoryManager] Attempted to unregister a null factory!", this);
-                return;
-            }
+            if (factoryToRemove == null) return; // Don't warn on destroy
 
             if (activeFactories.Contains(factoryToRemove))
             {
                 activeFactories.Remove(factoryToRemove);
                 Debug.Log($"<color=orange>[FactoryManager]</color> Unregistered factory: {factoryToRemove.name}", factoryToRemove);
             }
-            else
-            {
-                Debug.LogWarning($"[FactoryManager] Attempted to unregister factory {factoryToRemove.name} which was not registered.", factoryToRemove);
-            }
         }
 
-        // --- Example Usage (Optional) ---
-        // You could add methods here to control the factory if needed, e.g.:
-        // public void CommandFactoryToMove(Vector3 position)
-        // {
-        //     if (PlayerFactory != null)
-        //     {
-        //         // PlayerFactory.GoToPosition(position); // Assuming MobileFactory has such a method
-        //     }
-        // }
-
-        // public void RecallPlayerFactory()
-        // {
-        //      if (PlayerFactory != null && PlayerController.Instance != null) // Assuming a PlayerController singleton
-        //      {
-        //           PlayerFactory.WarpToPosition(PlayerController.Instance.transform.position + Vector3.up); // Example recall
-        //      }
-        // }
-        // --- End Example Usage ---
+        private void OnDestroy()
+        {
+            if (_instance == this)
+            {
+                activeFactories.Clear();
+                _instance = null;
+            }
+        }
     }
 }

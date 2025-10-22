@@ -12,7 +12,7 @@ namespace AutoForge.Player
 
         void Start()
         {
-            inventoryUI = FindObjectOfType<InventoryUI>();
+            inventoryUI = FindFirstObjectByType<InventoryUI>(); // <-- FIXED
             SetCursorState(false);
         }
 

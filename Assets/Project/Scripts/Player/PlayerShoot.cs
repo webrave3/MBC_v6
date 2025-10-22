@@ -37,7 +37,7 @@ namespace AutoForge.Player
 
         public void OnAttack(InputValue value)
         {
-            if (PlayerBuilder.Instance != null && PlayerBuilder.Instance.IsInBuildMode)
+            if (PlayerBuilder.Instance != null && PlayerBuilder.Instance.IsBuildMode)
             {
                 return;
             }
@@ -46,10 +46,7 @@ namespace AutoForge.Player
             if (GameManager.Instance != null && GameManager.Instance.IsPlayerInUIMode) return;
             if (Time.timeScale == 0f) return;
 
-            if (playerBuilder != null && playerBuilder.IsInBuildMode)
-            {
-                return;
-            }
+            if (playerBuilder != null && playerBuilder.IsBuildMode) return;
 
             if (value.isPressed)
             {

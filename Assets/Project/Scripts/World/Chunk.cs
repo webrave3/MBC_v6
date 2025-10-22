@@ -19,10 +19,7 @@ namespace AutoForge.World
             _meshRenderer = GetComponent<MeshRenderer>();
             _meshCollider = GetComponent<MeshCollider>();
 
-            if (_meshCollider == null)
-            {
-                Debug.LogError($"<color=red><b>[Chunk ERROR]</b></color> {gameObject.name} is missing its MeshCollider component!", this);
-            }
+            
 
             // Create Mesh instance once in Awake and reuse it
             _mesh = new Mesh();
@@ -49,8 +46,7 @@ namespace AutoForge.World
             }
             else
             {
-                Debug.LogError($"<color=red><b>[Chunk ERROR]</b></color> World Material is null for chunk {coord}!", this);
-                // Fallback to default material to avoid errors, though it won't look right
+               
                 _meshRenderer.material = new Material(Shader.Find("Standard"));
             }
 
@@ -63,7 +59,7 @@ namespace AutoForge.World
             WorldSettings settings = WorldManager.Instance?.settings;
             if (settings == null)
             {
-                Debug.LogError($"<color=red><b>[Chunk ERROR]</b></color> WorldManager.Instance or its settings are null for chunk {chunkCoord}!");
+                
                 return;
             }
 
@@ -81,7 +77,7 @@ namespace AutoForge.World
             if (settings.heightNoiseSettings == null || settings.temperatureNoiseSettings == null ||
                 settings.humidityNoiseSettings == null || settings.buildZoneNoiseSettings == null)
             {
-                Debug.LogError($"<color=red><b>[Chunk ERROR]</b></color> One or more NoiseSettings are NULL in WorldSettings for chunk {chunkCoord}!");
+                
                 return;
             }
             float[,] heightMap = Noise.GenerateNoiseMap(resolution, resolution, settings.heightNoiseSettings, chunkOffset);
@@ -91,7 +87,7 @@ namespace AutoForge.World
 
             if (heightMap == null || tempMap == null || humidityMap == null || buildZoneMask == null)
             {
-                Debug.LogError($"<color=red><b>[Chunk ERROR]</b></color> Failed to generate one or more noise maps for chunk {chunkCoord}!");
+                
                 return;
             }
 
@@ -121,13 +117,13 @@ namespace AutoForge.World
                 }
                 else
                 {
-                    Debug.LogWarning($"<color=yellow>[Chunk Warning]</color> Center coordinates ({centerX},{centerY}) out of bounds for noise maps on {gameObject.name}. Cannot determine dominant biome accurately.");
+                    
                     dominantBiome = settings.defaultBiome ?? (settings.biomes.Length > 0 ? settings.biomes[0] : null);
                 }
             }
             if (dominantBiome == null)
             {
-                Debug.LogWarning($"<color=yellow>[Chunk Warning]</color> No dominant or default biome found for chunk {chunkCoord}.");
+                
             }
 
 

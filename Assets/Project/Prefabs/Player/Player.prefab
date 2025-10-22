@@ -1731,6 +1731,7 @@ GameObject:
   - component: {fileID: 6538848872692239692}
   - component: {fileID: 5740742011418128293}
   - component: {fileID: -2478568535231807165}
+  - component: {fileID: 1373148974893903374}
   m_Layer: 8
   m_Name: Player
   m_TagString: Player
@@ -2011,20 +2012,16 @@ MonoBehaviour:
   mainCamera: {fileID: 2269964681122631406}
   previewValidMaterial: {fileID: 2100000, guid: c831c12ec959c764bb8dce78b5241026, type: 2}
   previewInvalidMaterial: {fileID: 2100000, guid: 0a182a2a543491d4da6ddeda7a0fcbfb, type: 2}
-  factoryFloorLayer:
+  factoryTileLayer:
     serializedVersion: 2
-    m_Bits: 512
+    m_Bits: 2048
   buildingPlacementLayers:
     serializedVersion: 2
     m_Bits: 512
   maxBuildDistance: 50
   tileSize: 2
-  obstructionLayers:
-    serializedVersion: 2
-    m_Bits: 1345
-  placementRulesEnabled: 0
   socketSelectionAngle: 0.7
-  enableDebugLogging: 1
+  buildingYOffset: 0.1
 --- !u!114 &7143359290261781911
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2037,7 +2034,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4e90ee2ea7bbd904387b0f41f86cfeaf, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AutoForge.Player.PlayerResourceCollector
-  collectionRadius: 10
+  collectionRadius: 8
 --- !u!54 &154340197478593193
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -2120,6 +2117,27 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0b93ec103f1a62649bc6ae07426307d7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerWorldLoader
+--- !u!135 &1373148974893903374
+SphereCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6223356944110169047}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Radius: 0.5
+  m_Center: {x: 0, y: 0, z: 0}
 --- !u!1 &6586177860892118180
 GameObject:
   m_ObjectHideFlags: 0

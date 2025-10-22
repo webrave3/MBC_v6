@@ -13,7 +13,7 @@ GameObject:
   - component: {fileID: 1007544444772996664}
   - component: {fileID: 1042871889160150900}
   - component: {fileID: -3263376008016173570}
-  m_Layer: 0
+  m_Layer: 11
   m_Name: DamageBooster
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -30,7 +30,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 12.11, y: 2.08, z: 0.5936}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalScale: {x: 2, y: 3, z: 2}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}

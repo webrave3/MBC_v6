@@ -1,5 +1,6 @@
 using UnityEngine;
 using System.Collections.Generic;
+using AutoForge.Factory;
 
 public class GridManager : MonoBehaviour
 {

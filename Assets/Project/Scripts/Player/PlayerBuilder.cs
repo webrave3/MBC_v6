@@ -1,8 +1,8 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
 using AutoForge.Core;
+using AutoForge.Factory;
 using System.Collections.Generic;
-using System.Text;
 
 namespace AutoForge.Player
 {
@@ -12,76 +12,67 @@ namespace AutoForge.Player
 
         [Header("Required References")]
         [SerializeField] private Camera mainCamera;
+        // NOTE: These are now FALLBACKS if the tinting shader property isn't found.
         [SerializeField] private Material previewValidMaterial;
         [SerializeField] private Material previewInvalidMaterial;
 
         [Header("Placement Settings")]
-        [SerializeField] private LayerMask factoryFloorLayer;
-        [Tooltip("The layers that buildings can be placed on. IMPORTANT: This should include your FactoryFloorLayer AND the layer your placed buildings are on.")]
+        [Tooltip("Layer mask containing ONLY the Factory Tile objects.")]
+        [SerializeField] private LayerMask factoryTileLayer;
+        [Tooltip("Layer mask containing Factory Tiles AND any other surfaces buildings can sit on.")]
         [SerializeField] private LayerMask buildingPlacementLayers;
-        [SerializeField] private float maxBuildDistance = 100f;
+        [Tooltip("Maximum distance from the camera the player can build.")]
+        [SerializeField] private float maxBuildDistance = 10f;
+        [Tooltip("Expected size of a tile (used for positioning).")]
         [SerializeField] private float tileSize = 2f;
-        [SerializeField] private LayerMask obstructionLayers;
 
         [Header("Tuning & Debugging")]
-        [Tooltip("When true, enables obstruction checks. When false, stacking and surface checks still apply.")]
-        public bool placementRulesEnabled = true;
-        [Tooltip("How directly you must look at a socket to select it (lower is more forgiving).")]
-        [SerializeField][Range(0.7f, 0.99f)] private float socketSelectionAngle = 0.9f;
-        [Tooltip("Enable to print a single log message explaining why placement is failing.")]
-        public bool enableDebugLogging = false;
+        [Tooltip("How directly player must look at a socket (dot product). Lower is more forgiving.")]
+        [SerializeField, Range(0.7f, 0.99f)] private float socketSelectionAngle = 0.9f;
+        [Tooltip("Small vertical offset when placing buildings on top of surfaces.")]
+        [SerializeField] private float buildingYOffset = 0.01f;
 
+        // --- Private State ---
         private GameObject buildPreview;
         private BuildingData currentBuildingData;
-        private Renderer[] previewRenderers;
         private bool isBuildMode = false;
-        public bool IsInBuildMode => isBuildMode;
-
-        private bool isPlacingFactoryTile = false;
         private bool canPlace = false;
         private Transform lastHitSocket;
-        private Collider[] overlapCheckResults = new Collider[10];
-        private float currentPreviewRotationY = 0f;
-        private StringBuilder debugStringBuilder = new StringBuilder();
+        private Transform lastHitSurface;
+        private Collider previewCollider;
 
+        // --- Material Handling ---
+        private static readonly int ColorPropertyID = Shader.PropertyToID("_BaseColor"); // URP Lit/SimpleLit property
+        private List<Renderer> previewRenderers = new List<Renderer>();
+        private Dictionary<Renderer, Material[]> originalMaterials = new Dictionary<Renderer, Material[]>();
+        private List<Material> previewMaterialInstances = new List<Material>();
+
+        public bool IsBuildMode => isBuildMode;
+
+        // --- Input Action Callbacks ---
+        public void OnAttack(InputValue value)
+        {
+            if (isBuildMode && value.isPressed && canPlace) PlaceItem();
+        }
+
+        public void OnCancelPlacement(InputValue value)
+        {
+            if (isBuildMode && value.isPressed) CancelBuildMode();
+        }
+
+        // --- Unity Methods ---
         private void Awake()
         {
             if (Instance != null && Instance != this) { Destroy(gameObject); return; }
             Instance = this;
         }
 
-        public void OnAttack(InputValue value)
-        {
-            if (isBuildMode && value.isPressed && canPlace)
-            {
-                PlaceBuilding();
-            }
-        }
-
-        public void OnCancelPlacement(InputValue value)
-        {
-            if (isBuildMode && value.isPressed)
-            {
-                CancelBuildMode();
-            }
-        }
-
-        public void OnRotate(InputValue value)
-        {
-            if (!isBuildMode || isPlacingFactoryTile) return;
-            float scrollValue = value.Get<Vector2>().y;
-            if (scrollValue > 0) currentPreviewRotationY += 90f;
-            else if (scrollValue < 0) currentPreviewRotationY -= 90f;
-        }
-
         private void Update()
         {
-            if (isBuildMode && buildPreview != null)
-            {
-                MoveAndAlignPreview();
-            }
+            if (isBuildMode && buildPreview != null) UpdatePreviewPositionAndValidation();
         }
 
+        // --- Public API ---
         public void SelectBuildingToPlace(BuildingData data)
         {
             if (data == null) { CancelBuildMode(); return; }
@@ -90,225 +81,222 @@ namespace AutoForge.Player
             currentBuildingData = data;
             if (buildPreview != null) Destroy(buildPreview);
 
-            currentPreviewRotationY = 0f;
             buildPreview = Instantiate(currentBuildingData.buildingPrefab);
-            isPlacingFactoryTile = buildPreview.GetComponent<FactoryTile>() != null;
+            previewRenderers.Clear();
+            previewRenderers.AddRange(buildPreview.GetComponentsInChildren<Renderer>());
+            previewCollider = buildPreview.GetComponentInChildren<Collider>();
 
-            previewRenderers = buildPreview.GetComponentsInChildren<Renderer>();
-
-            foreach (Collider col in buildPreview.GetComponentsInChildren<Collider>())
+            // --- Configure Preview Object ---
+            if (buildPreview.TryGetComponent<Rigidbody>(out var rb))
             {
-                col.isTrigger = true;
+                rb.isKinematic = true;
+                rb.detectCollisions = false;
             }
-
+            if (previewCollider != null)
+            {
+                previewCollider.enabled = false; // Disable collider to prevent physics interactions
+            }
+            foreach (var script in buildPreview.GetComponentsInChildren<MonoBehaviour>())
+            {
+                if (!(script is FactoryTile)) script.enabled = false;
+            }
             SetLayerRecursively(buildPreview, LayerMask.NameToLayer("Ignore Raycast"));
-
-            if (buildPreview.TryGetComponent<Building>(out var buildingScript))
-            {
-                buildingScript.enabled = false;
-            }
         }
 
         public void CancelBuildMode()
         {
+            RevertPreviewMaterials();
+
             if (buildPreview != null) Destroy(buildPreview);
             isBuildMode = false;
             currentBuildingData = null;
-            isPlacingFactoryTile = false;
             lastHitSocket = null;
+            lastHitSurface = null;
+            canPlace = false;
+            previewCollider = null;
         }
 
-        private void PlaceBuilding()
+        // --- Core Logic ---
+        private void PlaceItem()
         {
-            if (!canPlace || currentBuildingData == null) return;
-            if (ResourceManager.Instance.HasResource(currentBuildingData.costType, currentBuildingData.costAmount))
-            {
-                ResourceManager.Instance.SpendResource(currentBuildingData.costType, currentBuildingData.costAmount);
-                if (isPlacingFactoryTile)
-                {
-                    if (lastHitSocket == null || FactoryManager.Instance?.PlayerFactory == null) return;
-                    GameObject newTile = Instantiate(currentBuildingData.buildingPrefab, buildPreview.transform.position, buildPreview.transform.rotation);
-                    newTile.transform.SetParent(FactoryManager.Instance.PlayerFactory.transform, true);
-                    lastHitSocket.gameObject.SetActive(false);
-                    FactoryManager.Instance.PlayerFactory.GetComponent<FactoryNavMeshUpdater>().UpdateNavMesh();
-                }
-                else
-                {
-                    GameObject newBuilding = Instantiate(currentBuildingData.buildingPrefab, buildPreview.transform.position, buildPreview.transform.rotation);
-                    if (FactoryManager.Instance?.PlayerFactory != null)
-                    {
-                        newBuilding.transform.SetParent(FactoryManager.Instance.PlayerFactory.transform, true);
-                    }
-                }
-            }
+            if (!canPlace || currentBuildingData == null || FactoryManager.Instance == null) return;
+            if (!ResourceManager.Instance.HasResource(currentBuildingData.costType, currentBuildingData.costAmount))
+            { Debug.Log($"Not enough {currentBuildingData.costType}!"); return; }
+
+            ResourceManager.Instance.SpendResource(currentBuildingData.costType, currentBuildingData.costAmount);
+            GameObject newObject = Instantiate(currentBuildingData.buildingPrefab, buildPreview.transform.position, buildPreview.transform.rotation);
+            bool isFactoryTile = newObject.GetComponent<FactoryTile>() != null;
+
+            if (isFactoryTile) HandleTilePlacement(newObject);
+            else HandleBuildingPlacement(newObject);
         }
 
-        private void MoveAndAlignPreview()
+        private void HandleTilePlacement(GameObject newTileObject)
+        {
+            FactoryTile newTileScript = newTileObject.GetComponent<FactoryTile>();
+            MobileFactory playerFactory = FactoryManager.Instance.PlayerFactory;
+
+            if (lastHitSocket == null || playerFactory == null || newTileScript == null)
+            { Debug.LogError("Tile placement failed: Missing socket, factory, or FactoryTile script.", newTileObject); Destroy(newTileObject); ResourceManager.Instance.AddResource(currentBuildingData.costType, currentBuildingData.costAmount); return; }
+
+            Rigidbody anchorRigidbody = lastHitSocket.GetComponentInParent<Rigidbody>();
+            if (anchorRigidbody == null)
+            { Debug.LogError($"Tile placement failed: Could not find Rigidbody on parent of socket '{lastHitSocket.name}'.", lastHitSocket); Destroy(newTileObject); ResourceManager.Instance.AddResource(currentBuildingData.costType, currentBuildingData.costAmount); return; }
+
+            ConfigurableJoint joint = newTileObject.AddComponent<ConfigurableJoint>();
+            joint.connectedBody = anchorRigidbody;
+            joint.xMotion = ConfigurableJointMotion.Locked; joint.yMotion = ConfigurableJointMotion.Locked; joint.zMotion = ConfigurableJointMotion.Locked;
+            joint.angularXMotion = ConfigurableJointMotion.Limited; joint.angularYMotion = ConfigurableJointMotion.Limited; joint.angularZMotion = ConfigurableJointMotion.Limited;
+            var slerpDrive = new JointDrive { positionSpring = 2000f, positionDamper = 100f, maximumForce = float.MaxValue };
+            joint.slerpDrive = slerpDrive;
+            joint.projectionMode = JointProjectionMode.PositionAndRotation; joint.projectionDistance = 0.01f; joint.projectionAngle = 1.0f;
+            joint.configuredInWorldSpace = false;
+
+            newTileObject.transform.SetParent(playerFactory.transform, true);
+            playerFactory.RegisterTile(newTileScript);
+            lastHitSocket.gameObject.SetActive(false);
+
+            foreach (Socket socket in newTileObject.GetComponentsInChildren<Socket>(true))
+            {
+                bool connectsBack = false;
+                Vector3 dirToAnchor = (anchorRigidbody.transform.position - newTileObject.transform.position).normalized;
+                Vector3 socketForward = (socket.transform.position - newTileObject.transform.position).normalized;
+                if (Vector3.Dot(dirToAnchor, socketForward) > 0.95f) connectsBack = true;
+                socket.gameObject.SetActive(!connectsBack);
+            }
+            playerFactory.GetComponent<FactoryNavMeshUpdater>()?.UpdateNavMesh();
+        }
+
+        private void HandleBuildingPlacement(GameObject newBuilding)
+        {
+            if (lastHitSurface == null)
+            { Debug.LogError("Building placement failed: No valid surface detected.", newBuilding); Destroy(newBuilding); ResourceManager.Instance.AddResource(currentBuildingData.costType, currentBuildingData.costAmount); return; }
+
+            newBuilding.transform.SetParent(lastHitSurface, true);
+            foreach (var script in newBuilding.GetComponentsInChildren<MonoBehaviour>(true))
+            { script.enabled = true; }
+        }
+
+        private void UpdatePreviewPositionAndValidation()
         {
             canPlace = false;
             lastHitSocket = null;
-            debugStringBuilder.Clear();
+            lastHitSurface = null;
 
             Ray centerRay = mainCamera.ViewportPointToRay(new Vector3(0.5f, 0.5f, 0));
-            buildPreview.transform.position = centerRay.GetPoint(10f);
-            buildPreview.transform.rotation = Quaternion.Euler(0, currentPreviewRotationY, 0);
+            bool isFactoryTilePreview = buildPreview.GetComponent<FactoryTile>() != null;
 
-            if (isPlacingFactoryTile)
+            if (isFactoryTilePreview)
             {
-                HandleFactoryTilePlacement(centerRay);
+                Transform bestSocket = FindBestSocket(centerRay);
+                if (bestSocket != null)
+                {
+                    lastHitSocket = bestSocket;
+                    Transform parentRbTransform = bestSocket.GetComponentInParent<Rigidbody>()?.transform;
+                    if (parentRbTransform != null)
+                    {
+                        Vector3 directionFromParentCenter = (bestSocket.position - parentRbTransform.position).normalized;
+                        Vector3 targetPosition = parentRbTransform.position + (directionFromParentCenter * tileSize);
+                        Quaternion targetRotation = parentRbTransform.rotation;
+                        buildPreview.transform.position = targetPosition;
+                        buildPreview.transform.rotation = targetRotation;
+                        canPlace = true;
+                    }
+                    else
+                    {
+                        PlacePreviewAtRayPoint(centerRay);
+                        Debug.LogWarning("Found socket but its parent Rigidbody was null!");
+                    }
+                }
+                else
+                {
+                    PlacePreviewAtRayPoint(centerRay);
+                }
             }
             else
             {
-                HandleBuildingPlacement(centerRay);
+                PlacePreviewOnSurface(centerRay);
             }
-
-            if (enableDebugLogging && !canPlace && debugStringBuilder.Length > 0)
-            {
-                Debug.Log(debugStringBuilder.ToString());
-            }
-
             SetPreviewMaterial();
         }
 
-        private void HandleFactoryTilePlacement(Ray centerRay)
+        private void PlacePreviewOnSurface(Ray ray)
         {
-            Transform bestSocket = FindBestSocket();
-            if (bestSocket != null)
+            if (Physics.Raycast(ray, out RaycastHit hit, maxBuildDistance, buildingPlacementLayers))
             {
-                Transform parentPart = bestSocket.parent;
-                if (parentPart != null)
+                lastHitSurface = hit.transform;
+                FactoryTile hitTile = hit.collider.GetComponentInParent<FactoryTile>();
+
+                Vector3 surfacePoint = hit.point;
+                Vector3 surfaceNormal = hit.normal;
+                Quaternion surfaceRotation = hit.transform.rotation;
+
+                if (hitTile != null)
                 {
-                    Vector3 direction = (bestSocket.position - parentPart.position).normalized;
-                    Vector3 targetPosition = parentPart.position + (direction * tileSize);
-
-                    if (FactoryManager.Instance?.PlayerFactory != null)
-                    {
-                        targetPosition.y = FactoryManager.Instance.PlayerFactory.transform.position.y;
-                    }
-
-                    buildPreview.transform.position = targetPosition;
-                    buildPreview.transform.rotation = parentPart.rotation;
-
-                    canPlace = placementRulesEnabled ? !IsObstructed(targetPosition, parentPart.rotation, parentPart) : true;
-
-                    if (canPlace)
-                    {
-                        lastHitSocket = bestSocket;
-                    }
+                    surfacePoint = hitTile.transform.position;
+                    surfaceNormal = hitTile.transform.up;
+                    surfaceRotation = hitTile.transform.rotation;
+                    lastHitSurface = hitTile.transform;
                 }
-            }
-            else if (enableDebugLogging)
-            {
-                debugStringBuilder.Append("[FAIL] No valid socket found in view cone. ");
-            }
-        }
 
-        // MODIFIED: This method is rewritten to correctly handle stacking when placement rules are disabled.
-        private void HandleBuildingPlacement(Ray centerRay)
-        {
-            // Raycast against all valid building surfaces (floor AND other buildings).
-            if (Physics.Raycast(centerRay, out RaycastHit hit, maxBuildDistance, buildingPlacementLayers))
-            {
-                canPlace = false; // Default to invalid.
-
-                Building existingBuilding = hit.collider.GetComponentInParent<Building>();
-
-                // CASE 1: STACKING. This is the highest priority check.
-                if (existingBuilding != null && currentBuildingData.canStack && existingBuilding.data.buildingName == currentBuildingData.buildingName)
+                float bottomYOffset = 0f;
+                if (previewCollider != null)
                 {
-                    Vector3 targetPosition = existingBuilding.transform.position + new Vector3(0, currentBuildingData.stackHeight, 0);
-                    Quaternion targetRotation = existingBuilding.transform.rotation;
-                    buildPreview.transform.position = targetPosition;
-                    buildPreview.transform.rotation = targetRotation;
+                    Quaternion initialRot = buildPreview.transform.rotation;
+                    buildPreview.transform.rotation = Quaternion.identity;
+                    float minYLocal = buildPreview.transform.InverseTransformPoint(previewCollider.bounds.min).y;
+                    buildPreview.transform.rotation = initialRot;
+                    bottomYOffset = -minYLocal * buildPreview.transform.localScale.y;
+                }
 
-                    // Stacking is allowed, but we check for obstructions if rules are on.
-                    canPlace = placementRulesEnabled ? !IsObstructed(targetPosition, targetRotation, existingBuilding.transform) : true;
-                }
-                // CASE 2: PLACING ON EMPTY TILE. Only runs if we are not stacking.
-                else if (existingBuilding == null)
-                {
-                    Transform hitTile = hit.collider.transform;
-                    Vector3 targetPosition = hitTile.position;
-                    targetPosition.y = hit.collider.bounds.max.y + currentBuildingData.placementYOffset;
-                    Quaternion targetRotation = hitTile.rotation * Quaternion.Euler(0, currentPreviewRotationY, 0);
-                    buildPreview.transform.position = targetPosition;
-                    buildPreview.transform.rotation = targetRotation;
+                Vector3 targetPosition = surfacePoint + surfaceNormal * (bottomYOffset + buildingYOffset);
+                Quaternion targetRotation = (hitTile != null) ?
+                    surfaceRotation : // Align exactly with tile
+                    Quaternion.LookRotation(Vector3.ProjectOnPlane(mainCamera.transform.forward, surfaceNormal).normalized, surfaceNormal); // Align to other surfaces
 
-                    // Standard placement is allowed, but check for obstructions if rules are on.
-                    canPlace = placementRulesEnabled ? !IsObstructed(targetPosition, targetRotation, null) : true;
-                }
-                // CASE 3: INVALID PLACEMENT. We hit a building but couldn't stack.
-                else
-                {
-                    buildPreview.transform.position = hit.point;
-                    canPlace = false;
-                    if (enableDebugLogging) debugStringBuilder.Append("[FAIL] Target is occupied by a non-stackable or different building.");
-                }
+                buildPreview.transform.position = targetPosition;
+                buildPreview.transform.rotation = targetRotation;
+                canPlace = true;
             }
             else
             {
-                canPlace = false;
-                if (enableDebugLogging) debugStringBuilder.Append("[FAIL] No valid build surface found.");
+                PlacePreviewAtRayPoint(ray);
             }
         }
 
-        private bool IsObstructed(Vector3 targetPosition, Quaternion targetRotation, Transform ignorePart)
+        private void PlacePreviewAtRayPoint(Ray ray)
         {
-            Collider previewCollider = buildPreview.GetComponentInChildren<Collider>();
-            if (previewCollider == null) return true;
-            Vector3 boxHalfExtents = previewCollider.bounds.extents;
-
-            int overlapCount = Physics.OverlapBoxNonAlloc(targetPosition, boxHalfExtents, overlapCheckResults, targetRotation, obstructionLayers, QueryTriggerInteraction.Ignore);
-            if (overlapCount > 0)
-            {
-                if (enableDebugLogging) debugStringBuilder.Append($"[FAIL] Obstructed by '{overlapCheckResults[0].name}' on layer '{LayerMask.LayerToName(overlapCheckResults[0].gameObject.layer)}'. ");
-                return true;
-            }
-
-            overlapCount = Physics.OverlapBoxNonAlloc(targetPosition, boxHalfExtents, overlapCheckResults, targetRotation, factoryFloorLayer, QueryTriggerInteraction.Ignore);
-            if (overlapCount > 0)
-            {
-                for (int i = 0; i < overlapCount; i++)
-                {
-                    if (overlapCheckResults[i].transform != ignorePart && (ignorePart == null || !overlapCheckResults[i].transform.IsChildOf(ignorePart)))
-                    {
-                        if (enableDebugLogging) debugStringBuilder.Append($"[FAIL] Obstructed by other factory part: '{overlapCheckResults[i].name}'. ");
-                        return true;
-                    }
-                }
-            }
-            return false;
+            buildPreview.transform.position = ray.GetPoint(maxBuildDistance * 0.75f);
+            canPlace = false;
         }
 
-        private Transform FindBestSocket()
+        private Transform FindBestSocket(Ray viewRay)
         {
             Transform bestSocket = null;
             float bestScore = -1f;
-
             if (FactoryManager.Instance?.PlayerFactory == null) return null;
 
-            Vector3 playerPos = transform.position;
-            Vector3 playerLookDir = mainCamera.transform.forward;
-
-            var allSockets = FactoryManager.Instance.PlayerFactory.GetComponentsInChildren<Socket>();
-
-            foreach (var socket in allSockets)
+            if (Physics.Raycast(viewRay, out RaycastHit hit, maxBuildDistance, factoryTileLayer))
             {
-                if (!socket.gameObject.activeInHierarchy) continue;
-
-                Vector3 toSocketDir = (socket.transform.position - playerPos).normalized;
-                float dot = Vector3.Dot(playerLookDir, toSocketDir);
-
-                float distSqr = (socket.transform.position - playerPos).sqrMagnitude;
-                if (distSqr > maxBuildDistance * maxBuildDistance) continue;
-
-                if (dot > socketSelectionAngle)
+                FactoryTile hitTile = hit.collider.GetComponentInParent<FactoryTile>();
+                if (hitTile != null)
                 {
-                    float score = dot / distSqr;
-                    if (score > bestScore)
+                    Vector3 playerLookDir = mainCamera.transform.forward;
+                    foreach (var socket in hitTile.GetComponentsInChildren<Socket>())
                     {
-                        bestScore = score;
-                        bestSocket = socket.transform;
+                        if (!socket.gameObject.activeInHierarchy) continue;
+                        Vector3 toSocketDir = (socket.transform.position - viewRay.origin).normalized;
+                        float dot = Vector3.Dot(playerLookDir, toSocketDir);
+                        if (dot > socketSelectionAngle)
+                        {
+                            float distSqr = (socket.transform.position - viewRay.origin).sqrMagnitude;
+                            float score = dot / (1f + distSqr);
+                            if (score > bestScore)
+                            {
+                                bestScore = score;
+                                bestSocket = socket.transform;
+                            }
+                        }
                     }
                 }
             }
@@ -317,23 +305,71 @@ namespace AutoForge.Player
 
         private void SetPreviewMaterial()
         {
-            Material materialToApply = canPlace ? previewValidMaterial : previewInvalidMaterial;
-            if (materialToApply != null && previewRenderers != null)
+            if (previewRenderers.Count == 0) return;
+
+            if (previewMaterialInstances.Count == 0)
             {
+                originalMaterials.Clear();
                 foreach (var renderer in previewRenderers)
                 {
-                    renderer.material = materialToApply;
+                    if (renderer != null)
+                    {
+                        originalMaterials[renderer] = renderer.sharedMaterials;
+                        previewMaterialInstances.AddRange(renderer.materials);
+                    }
                 }
             }
+
+            // Fallback if materials don't have the color property
+            bool usedTintColor = false;
+            Color tintColor = canPlace ? new Color(0.5f, 1.0f, 0.5f, 0.75f) : new Color(1.0f, 0.5f, 0.5f, 0.75f);
+
+            foreach (Material matInstance in previewMaterialInstances)
+            {
+                if (matInstance.HasProperty(ColorPropertyID))
+                {
+                    matInstance.SetColor(ColorPropertyID, tintColor);
+                    usedTintColor = true;
+                }
+            }
+
+            // If tinting failed for all materials, use the simple swap method as a fallback
+            if (!usedTintColor)
+            {
+                Material materialToApply = canPlace ? previewValidMaterial : previewInvalidMaterial;
+                if (materialToApply == null) return;
+                foreach (var renderer in previewRenderers)
+                {
+                    if (renderer != null)
+                    {
+                        var mats = new Material[renderer.sharedMaterials.Length];
+                        for (int i = 0; i < mats.Length; i++) mats[i] = materialToApply;
+                        renderer.materials = mats;
+                    }
+                }
+            }
+        }
+
+        private void RevertPreviewMaterials()
+        {
+            foreach (var kvp in originalMaterials)
+            {
+                Renderer renderer = kvp.Key;
+                Material[] originalMats = kvp.Value;
+                if (renderer != null)
+                {
+                    renderer.sharedMaterials = originalMats;
+                }
+            }
+            originalMaterials.Clear();
+            previewMaterialInstances.Clear();
+            previewRenderers.Clear();
         }
 
         private void SetLayerRecursively(GameObject obj, int layer)
         {
             obj.layer = layer;
-            foreach (Transform child in obj.transform)
-            {
-                SetLayerRecursively(child.gameObject, layer);
-            }
+            foreach (Transform child in obj.transform) SetLayerRecursively(child.gameObject, layer);
         }
     }
 }
