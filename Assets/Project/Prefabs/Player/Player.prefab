@@ -2014,10 +2014,10 @@ MonoBehaviour:
   previewInvalidMaterial: {fileID: 2100000, guid: 0a182a2a543491d4da6ddeda7a0fcbfb, type: 2}
   factoryTileLayer:
     serializedVersion: 2
-    m_Bits: 2048
+    m_Bits: 512
   buildingPlacementLayers:
     serializedVersion: 2
-    m_Bits: 512
+    m_Bits: 2048
   maxBuildDistance: 50
   tileSize: 2
   socketSelectionAngle: 0.7
@@ -2074,7 +2074,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ea9df0d3008991843a1b8282f1e4aa0c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AutoForge.Player.PlayerInventory
-  items: []
+  items:
+  - itemType: {fileID: 11400000, guid: 233afb50ab6c485409801808b58c4247, type: 2}
+    amount: 500
   inventorySize: 20
 --- !u!114 &6538848872692239692
 MonoBehaviour:

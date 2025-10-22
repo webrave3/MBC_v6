@@ -42,13 +42,13 @@ GameObject:
   - component: {fileID: 1902644956544865788}
   - component: {fileID: 2129589990871909776}
   - component: {fileID: 7856603152023297752}
-  m_Layer: 7
+  m_Layer: 9
   m_Name: Socket_N
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!4 &1902644956544865788
 Transform:
   m_ObjectHideFlags: 0
@@ -139,13 +139,13 @@ GameObject:
   - component: {fileID: 2123742194887674085}
   - component: {fileID: 2990291845650501429}
   - component: {fileID: 8606638478035295475}
-  m_Layer: 7
+  m_Layer: 9
   m_Name: Socket_S
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!4 &2123742194887674085
 Transform:
   m_ObjectHideFlags: 0
@@ -236,13 +236,13 @@ GameObject:
   - component: {fileID: 7540380523685967152}
   - component: {fileID: 6440424989643299244}
   - component: {fileID: 8131015521040591446}
-  m_Layer: 7
+  m_Layer: 9
   m_Name: Socket_E
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!4 &7540380523685967152
 Transform:
   m_ObjectHideFlags: 0
@@ -333,13 +333,13 @@ GameObject:
   - component: {fileID: 8749472279446299252}
   - component: {fileID: 6338949680671709641}
   - component: {fileID: 2774756104906861279}
-  m_Layer: 7
+  m_Layer: 9
   m_Name: Socket_W
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!4 &8749472279446299252
 Transform:
   m_ObjectHideFlags: 0
@@ -527,6 +527,7 @@ MonoBehaviour:
   - {fileID: 5153965849263270931}
   - {fileID: 2412896061698884626}
   - {fileID: 1388065363175318097}
+  maxLiftAcceleration: 100
 --- !u!54 &5493345761227979432
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -535,9 +536,9 @@ Rigidbody:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 7819179782035596596}
   serializedVersion: 5
-  m_Mass: 50
+  m_Mass: 200
   m_LinearDamping: 2
-  m_AngularDamping: 5
+  m_AngularDamping: 10
   m_CenterOfMass: {x: 0, y: 0, z: 0}
   m_InertiaTensor: {x: 1, y: 1, z: 1}
   m_InertiaRotation: {x: 0, y: 0, z: 0, w: 1}
@@ -551,7 +552,7 @@ Rigidbody:
   m_ImplicitTensor: 1
   m_UseGravity: 0
   m_IsKinematic: 0
-  m_Interpolate: 0
+  m_Interpolate: 1
   m_Constraints: 0
   m_CollisionDetection: 1
 --- !u!65 &794369543411410436

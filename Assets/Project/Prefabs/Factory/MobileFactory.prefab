@@ -29,7 +29,7 @@ Transform:
   m_GameObject: {fileID: 677021087417967928}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 12.86071, y: 20, z: -1.55632}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -46,8 +46,8 @@ NavMeshAgent:
   m_Enabled: 1
   m_AgentTypeID: 0
   m_Radius: 0.5
-  m_Speed: 3
-  m_Acceleration: 8
+  m_Speed: 5
+  m_Acceleration: 5
   avoidancePriority: 50
   m_AngularSpeed: 120
   m_StoppingDistance: 5
@@ -72,12 +72,21 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::MobileFactory
   stoppingDistance: 5
   activationDistance: 7
-  hoverHeight: 2
+  activationSizeBuffer: 1.5
+  stuckCheckTime: 3
+  brakingForceFactor: 0.9
+  hoverHeight: 3
   hoverForce: 100
   hoverDamp: 5
   groundCheckDistance: 5
-  moveForce: 100
+  moveForce: 10
   rotationSpeed: 50
+  bobFrequency: 2
+  bobAmplitude: 0.25
+  minYRecoveryThreshold: -50
+  maxSpeedRecoveryThreshold: 100
+  uprightDotThreshold: -0.5
+  recoveryOffset: {x: 0, y: 2, z: -3}
   coreTile: {fileID: 5637090868649257404}
   terrainLayer:
     serializedVersion: 2
@@ -85,6 +94,9 @@ MonoBehaviour:
   enablePeriodicLogging: 1
   logFrequencyFrames: 65
   torqueMagnitudeWarningThreshold: 500
+  drawNavMeshPath: 1
+  drawFactoryBounds: 1
+  enableCollisionLogging: 0
 --- !u!114 &7993505398098195424
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -126,8 +138,20 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 4051317187013325960}
     m_Modifications:
+    - target: {fileID: 558244718625829403, guid: 48914c477c8807d4ab6fcf9f810843da, type: 3}
+      propertyPath: m_IsActive
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 794369543411410436, guid: 48914c477c8807d4ab6fcf9f810843da, type: 3}
       propertyPath: m_Enabled
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 905970835791805995, guid: 48914c477c8807d4ab6fcf9f810843da, type: 3}
+      propertyPath: m_IsActive
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2519849103934100962, guid: 48914c477c8807d4ab6fcf9f810843da, type: 3}
+      propertyPath: m_IsActive
       value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 5427682622775987230, guid: 48914c477c8807d4ab6fcf9f810843da, type: 3}
@@ -136,7 +160,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 5493345761227979432, guid: 48914c477c8807d4ab6fcf9f810843da, type: 3}
       propertyPath: m_Mass
-      value: 500
+      value: 200
       objectReference: {fileID: 0}
     - target: {fileID: 5493345761227979432, guid: 48914c477c8807d4ab6fcf9f810843da, type: 3}
       propertyPath: m_LinearDamping
@@ -186,6 +210,10 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 6710319784443802555, guid: 48914c477c8807d4ab6fcf9f810843da, type: 3}
+      propertyPath: m_IsActive
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 7819179782035596596, guid: 48914c477c8807d4ab6fcf9f810843da, type: 3}
       propertyPath: m_Name
       value: Tile
@@ -224,15 +252,15 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 3275136922123886099, guid: 2d7201c06dec86b48a3a3e860a235d63, type: 3}
       propertyPath: m_LocalScale.x
-      value: 0.5
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 3275136922123886099, guid: 2d7201c06dec86b48a3a3e860a235d63, type: 3}
       propertyPath: m_LocalScale.y
-      value: 2.5
+      value: 3
       objectReference: {fileID: 0}
     - target: {fileID: 3275136922123886099, guid: 2d7201c06dec86b48a3a3e860a235d63, type: 3}
       propertyPath: m_LocalScale.z
-      value: 0.5
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 3275136922123886099, guid: 2d7201c06dec86b48a3a3e860a235d63, type: 3}
       propertyPath: m_LocalPosition.x
@@ -240,7 +268,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 3275136922123886099, guid: 2d7201c06dec86b48a3a3e860a235d63, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 1.75
+      value: 2
       objectReference: {fileID: 0}
     - target: {fileID: 3275136922123886099, guid: 2d7201c06dec86b48a3a3e860a235d63, type: 3}
       propertyPath: m_LocalPosition.z
